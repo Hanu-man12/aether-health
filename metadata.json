@@ -1,0 +1,7 @@
+{
+  "name": "Aether Health",
+  "description": "A holistic, AI-powered healthcare platform inspired by the five elements. Designed for anxiety reduction and responsible guidance.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
