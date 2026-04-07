@@ -97,7 +97,7 @@ const ClearScriptModule: React.FC<ClearScriptModuleProps> = ({
               {selectedImage ? (
                 <>
                   <img 
-                    src={`data:image/png;base64,${selectedImage}`} 
+                    src={selectedImage.startsWith('data:') ? selectedImage : `data:image/jpeg;base64,${selectedImage}`}
                     className={`w-full h-full object-cover transition-all duration-700 ${loading ? 'blur-sm grayscale opacity-50' : 'blur-0 grayscale-0 opacity-80'}`} 
                     alt="Prescription"
                   />

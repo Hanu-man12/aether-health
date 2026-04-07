@@ -92,7 +92,7 @@ const TrueMedsModule: React.FC<TrueMedsModuleProps> = ({
               {selectedImage ? (
                 <>
                   <img 
-                    src={`data:image/png;base64,${selectedImage}`} 
+                    src={selectedImage.startsWith('data:') ? selectedImage : `data:image/jpeg;base64,${selectedImage}`} 
                     className={`w-full h-full object-contain p-4 transition-all duration-500 ${loading ? 'opacity-50 grayscale' : ''}`}
                     alt="Specimen" 
                   />

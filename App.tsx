@@ -132,9 +132,10 @@ const App: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        // Keep full data URI (including data:image/webp;base64, prefix)
+        // so Lambda can detect correct MIME type (important for mobile WebP images)
         const base64String = reader.result as string;
-        const base64Content = base64String.split(',')[1];
-        setSelectedImage(base64Content);
+        setSelectedImage(base64String);
       };
       reader.readAsDataURL(file);
     }

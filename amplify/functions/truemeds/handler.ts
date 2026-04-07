@@ -26,11 +26,18 @@ export const handler = async (event: any) => {
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
     let rawBase64 = imageBase64;
     if (imageBase64.startsWith('data:')) {
-      const mime = imageBase64.split(';')[0].split('/')[1];
+      const mime = imageBase64.split(';')[0].split('/')[1].toLowerCase();
       if (mime === 'png') format = 'png';
       else if (mime === 'webp') format = 'webp';
       else if (mime === 'gif') format = 'gif';
+      else format = 'jpeg';
       rawBase64 = imageBase64.split(',')[1];
+    } else {
+      const header = rawBase64.substring(0, 12);
+      if (header.startsWith('iVBORw')) format = 'png';
+      else if (header.startsWith('UklGR')) format = 'webp';
+      else if (header.startsWith('R0lGOD')) format = 'gif';
+      else format = 'jpeg';
     }
 
     const lang = userProfile?.language || 'en';
