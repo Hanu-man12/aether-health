@@ -16,6 +16,19 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
+    // Detect format from data URI or default to jpeg
+    let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
+    let rawBase64 = imageBase64;
+    if (imageBase64.startsWith('data:')) {
+      const mime = imageBase64.split(';')[0].split('/')[1];
+      if (mime === 'png') format = 'png';
+      else if (mime === 'webp') format = 'webp';
+      else if (mime === 'gif') format = 'gif';
+      rawBase64 = imageBase64.split(',')[1];
+    }
+    // InvokeModel API requires base64 string for image bytes (not binary/Buffer)
+    const imageBase64ForBedrock = rawBase64;
+
     const prompt = `${SYSTEM_PROMPT}
 
 User Language: ${userProfile?.language || 'en'}
@@ -39,7 +52,7 @@ Perform forensic verification on this medicine packaging. Return JSON:
           messages: [{
             role: 'user',
             content: [
-              { image: { format: 'jpeg', source: { bytes: imageBase64 } } },
+              { image: { format, source: { bytes: imageBase64ForBedrock } } },
               { text: prompt },
             ],
           }],
