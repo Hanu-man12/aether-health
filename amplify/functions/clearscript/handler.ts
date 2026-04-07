@@ -1,7 +1,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
+const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-pro-v1:0';
 
 const SYSTEM_PROMPT = `You are ClearScript, an expert Clinical Pharmacist and Forensic Graphologist.
 Decode handwritten prescriptions. Expand all Latin abbreviations (BID, TID, PRN, etc.).
@@ -54,7 +54,7 @@ Analyze this prescription image. Return JSON:
           messages: [{
             role: 'user',
             content: [
-              { image: { format: 'png', source: { bytes: imageBase64 } } },
+              { image: { format: 'jpeg', source: { bytes: imageBase64 } } },
               { text: prompt },
             ],
           }],

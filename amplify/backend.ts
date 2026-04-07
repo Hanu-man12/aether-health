@@ -22,7 +22,10 @@ const backend = defineBackend({
 // Grant all Lambda functions access to Bedrock Nova Lite
 const bedrockPolicy = new PolicyStatement({
   actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-  resources: ['arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0'],
+  resources: [
+    'arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0',
+    'arn:aws:bedrock:*::foundation-model/amazon.nova-pro-v1:0',
+  ],
 });
 
 backend.vitalscan.resources.lambda.addToRolePolicy(bedrockPolicy);

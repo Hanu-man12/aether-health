@@ -1,7 +1,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
+const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-pro-v1:0';
 
 const SYSTEM_PROMPT = `You are TrueMeds, a forensic medicine packaging verifier.
 Analyze packaging for authenticity: typography, print quality, seals, batch numbers.
@@ -39,7 +39,7 @@ Perform forensic verification on this medicine packaging. Return JSON:
           messages: [{
             role: 'user',
             content: [
-              { image: { format: 'png', source: { bytes: imageBase64 } } },
+              { image: { format: 'jpeg', source: { bytes: imageBase64 } } },
               { text: prompt },
             ],
           }],

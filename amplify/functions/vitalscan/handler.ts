@@ -5,6 +5,8 @@ const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
 const SYSTEM_PROMPT = `You are Aether Health VitalScan, a calm AI symptom analyzer.
 Analyze symptoms to reduce anxiety. Never diagnose. Use probability-based reasoning.
+You MUST respond in the same language the user writes in.
+If user writes in Hindi, Hinglish, or any mix - respond in that same style.
 Always return valid JSON only, no markdown.`;
 
 export const handler = async (event: any) => {
@@ -16,9 +18,16 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'input is required' }) };
     }
 
+    const userLang = userProfile?.language || 'en';
+    const langInstruction = userLang === 'hi' 
+      ? 'MANDATORY: Respond ONLY in Hinglish (Hindi + English mix). All JSON values must be in Hinglish.'
+      : userLang === 'en'
+      ? 'Respond in English.'
+      : `Respond in language code: ${userLang}.`;
+
     const prompt = `${SYSTEM_PROMPT}
 
-User Language: ${userProfile?.language || 'en'}
+${langInstruction}
 Tone: ${userProfile?.tone || 'calm'}
 
 Symptoms: "${input}"
