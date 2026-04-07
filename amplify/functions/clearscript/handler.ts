@@ -68,21 +68,42 @@ Return ONLY valid JSON, no markdown, no explanation:
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 1024, temperature: 0.2 },
+          inferenceConfig: { maxTokens: 2048, temperature: 0.2 },
         }),
       })
     );
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     const text = responseBody.output?.message?.content?.[0]?.text || '{}';
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Extract JSON block - handle truncated responses
+    let jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Find the outermost JSON object boundaries
+    const start = jsonStr.indexOf('{');
+    const end = jsonStr.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      jsonStr = jsonStr.slice(start, end + 1);
+    }
 
     let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(jsonStr);
     } catch (parseErr) {
-      console.error('ClearScript JSON parse error:', parseErr, 'Raw text:', text);
-      return { statusCode: 500, body: JSON.stringify({ error: 'Failed to parse AI response.' }) };
+      console.error('ClearScript JSON parse error:', parseErr, 'Raw text length:', text.length);
+      // Return partial result with what we have
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ocrInterpretation: text.slice(0, 500),
+          medications: [],
+          ambiguityFlags: ['Response was truncated. Please try with a clearer image.'],
+          verificationRequired: true,
+          safetyAdvice: 'Could not fully parse the prescription. Please verify with your pharmacist.',
+          reassuranceLine: 'Please try again with a higher quality image.',
+          reasoningSummary: 'AI response was truncated due to length.',
+        }),
+      };
     }
 
     return {
