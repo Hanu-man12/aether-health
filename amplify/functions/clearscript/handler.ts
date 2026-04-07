@@ -93,7 +93,7 @@ Return this exact JSON structure (all string values in the specified language):
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 2048, temperature: 0.1 },
+          inferenceConfig: { maxTokens: 4096, temperature: 0.1 },
         }),
       })
     );

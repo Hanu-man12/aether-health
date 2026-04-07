@@ -72,7 +72,7 @@ Return this exact JSON (all string values in the specified language):
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 1024, temperature: 0.2 },
+          inferenceConfig: { maxTokens: 2048, temperature: 0.2 },
         }),
       })
     );
