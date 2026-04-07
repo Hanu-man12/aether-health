@@ -12,7 +12,6 @@ frontend:
         - npm install --legacy-peer-deps
     build:
       commands:
-        - npm run fetch-lambda-urls
         - npm run build
   artifacts:
     baseDirectory: dist
