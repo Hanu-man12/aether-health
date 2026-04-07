@@ -3,11 +3,16 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
 const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
-const SYSTEM_PROMPT = `You are Aether Health VitalScan, a calm AI symptom analyzer.
-Analyze symptoms to reduce anxiety. Never diagnose. Use probability-based reasoning.
-You MUST respond in the same language the user writes in.
-If user writes in Hindi, Hinglish, or any mix - respond in that same style.
-Always return valid JSON only, no markdown.`;
+const LANG_INSTRUCTION: Record<string, string> = {
+  en: 'Respond in English.',
+  hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
+  bn: 'Respond in Bengali (Bengali script). All JSON string values must be in Bengali.',
+  es: 'Respond in Spanish. All JSON string values must be in Spanish.',
+  fr: 'Respond in French. All JSON string values must be in French.',
+  de: 'Respond in German. All JSON string values must be in German.',
+  zh: 'Respond in Simplified Chinese. All JSON string values must be in Chinese.',
+  ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
+};
 
 export const handler = async (event: any) => {
   try {
@@ -18,28 +23,28 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'input is required' }) };
     }
 
-    const userLang = userProfile?.language || 'en';
-    const langInstruction = userLang === 'hi' 
-      ? 'MANDATORY: Respond ONLY in Hinglish (Hindi + English mix). All JSON values must be in Hinglish.'
-      : userLang === 'en'
-      ? 'Respond in English.'
-      : `Respond in language code: ${userLang}.`;
+    const lang = userProfile?.language || 'en';
+    const langInstruction = LANG_INSTRUCTION[lang] || LANG_INSTRUCTION['en'];
 
-    const prompt = `${SYSTEM_PROMPT}
+    const prompt = `You are Aether Health VitalScan, a calm AI symptom analyzer.
+Analyze symptoms to reduce anxiety. Never diagnose. Use probability-based reasoning.
+IMPORTANT: Return ONLY valid JSON. No markdown, no text outside JSON.
 
-${langInstruction}
+LANGUAGE: ${langInstruction}
 Tone: ${userProfile?.tone || 'calm'}
 
 Symptoms: "${input}"
 
-Return JSON with these exact fields:
+Return this exact JSON (all string values in the specified language):
 {
-  "emotionalState": "string",
-  "likelyCauses": [{ "cause": "string", "probability": "string" }],
-  "whatThisMeans": "string",
-  "safetyAdvice": "string",
-  "reassuranceLine": "string",
-  "reasoningSummary": "string"
+  "emotionalState": "e.g. Calm / Anxious",
+  "likelyCauses": [
+    { "cause": "cause name", "probability": "e.g. 60%" }
+  ],
+  "whatThisMeans": "plain explanation",
+  "safetyAdvice": "what to do",
+  "reassuranceLine": "calming message",
+  "reasoningSummary": "brief reasoning"
 }`;
 
     const response = await client.send(
@@ -55,15 +60,18 @@ Return JSON with these exact fields:
     );
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.output?.message?.content?.[0]?.text || '{}';
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const text = responseBody.output?.message?.content?.[0]?.text || '';
+
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON in response');
 
     return {
       statusCode: 200,
-      body: JSON.stringify(JSON.parse(cleaned)),
+      body: JSON.stringify(JSON.parse(text.slice(start, end + 1))),
     };
-  } catch (err) {
-    console.error('VitalScan error:', err);
+  } catch (err: any) {
+    console.error('VitalScan error:', err?.message || err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Analysis failed. Please try again.' }),

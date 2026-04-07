@@ -1,11 +1,18 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-pro-v1:0';
+const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
-const SYSTEM_PROMPT = `You are TrueMeds, a forensic medicine packaging verifier.
-Analyze packaging for authenticity: typography, print quality, seals, batch numbers.
-Always return valid JSON only, no markdown.`;
+const LANG_INSTRUCTION: Record<string, string> = {
+  en: 'Respond in English.',
+  hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
+  bn: 'Respond in Bengali (Bengali script). All JSON string values must be in Bengali.',
+  es: 'Respond in Spanish. All JSON string values must be in Spanish.',
+  fr: 'Respond in French. All JSON string values must be in French.',
+  de: 'Respond in German. All JSON string values must be in German.',
+  zh: 'Respond in Simplified Chinese. All JSON string values must be in Chinese.',
+  ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
+};
 
 export const handler = async (event: any) => {
   try {
@@ -16,7 +23,6 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
-    // Detect format from data URI or default to jpeg
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
     let rawBase64 = imageBase64;
     if (imageBase64.startsWith('data:')) {
@@ -26,21 +32,24 @@ export const handler = async (event: any) => {
       else if (mime === 'gif') format = 'gif';
       rawBase64 = imageBase64.split(',')[1];
     }
-    // InvokeModel API requires base64 string for image bytes (not binary/Buffer)
-    const imageBase64ForBedrock = rawBase64;
 
-    const prompt = `${SYSTEM_PROMPT}
+    const lang = userProfile?.language || 'en';
+    const langInstruction = LANG_INSTRUCTION[lang] || LANG_INSTRUCTION['en'];
 
-User Language: ${userProfile?.language || 'en'}
+    const prompt = `You are TrueMeds, a forensic medicine packaging verifier.
+Analyze packaging for authenticity: typography, print quality, seals, batch numbers.
+IMPORTANT: Return ONLY valid JSON. No markdown, no text outside JSON.
 
-Perform forensic verification on this medicine packaging. Return JSON:
+LANGUAGE: ${langInstruction}
+
+Return this exact JSON (all string values in the specified language):
 {
-  "medicineIdentified": "string",
-  "authenticityConfidence": "High|Medium|Low",
-  "redFlags": ["string"],
-  "safetyAdvice": "string",
-  "reassuranceLine": "string",
-  "reasoningSummary": "string"
+  "medicineIdentified": "medicine name",
+  "authenticityConfidence": "High",
+  "redFlags": ["any suspicious elements"],
+  "safetyAdvice": "safety advice",
+  "reassuranceLine": "reassuring message",
+  "reasoningSummary": "brief summary"
 }`;
 
     const response = await client.send(
@@ -52,25 +61,28 @@ Perform forensic verification on this medicine packaging. Return JSON:
           messages: [{
             role: 'user',
             content: [
-              { image: { format, source: { bytes: imageBase64ForBedrock } } },
+              { image: { format, source: { bytes: rawBase64 } } },
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 512, temperature: 0.2 },
+          inferenceConfig: { maxTokens: 1024, temperature: 0.2 },
         }),
       })
     );
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.output?.message?.content?.[0]?.text || '{}';
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const text = responseBody.output?.message?.content?.[0]?.text || '';
+
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('No JSON in response');
 
     return {
       statusCode: 200,
-      body: JSON.stringify(JSON.parse(cleaned)),
+      body: JSON.stringify(JSON.parse(text.slice(start, end + 1))),
     };
-  } catch (err) {
-    console.error('TrueMeds error:', err);
+  } catch (err: any) {
+    console.error('TrueMeds error:', err?.message || err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Medicine verification failed. Please try again.' }),

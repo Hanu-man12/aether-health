@@ -3,6 +3,17 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
 const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
+const LANG_INSTRUCTION: Record<string, string> = {
+  en: 'Respond in English.',
+  hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
+  bn: 'Respond in Bengali (Bengali script). All JSON string values must be in Bengali.',
+  es: 'Respond in Spanish. All JSON string values must be in Spanish.',
+  fr: 'Respond in French. All JSON string values must be in French.',
+  de: 'Respond in German. All JSON string values must be in German.',
+  zh: 'Respond in Simplified Chinese. All JSON string values must be in Chinese.',
+  ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
+};
+
 export const handler = async (event: any) => {
   try {
     const body = JSON.parse(event.body || '{}');
@@ -22,43 +33,43 @@ export const handler = async (event: any) => {
       rawBase64 = imageBase64.split(',')[1];
     }
 
-    // InvokeModel API requires base64 string (not binary) for image bytes
+    const lang = userProfile?.language || 'en';
+    const langInstruction = LANG_INSTRUCTION[lang] || LANG_INSTRUCTION['en'];
+
     const prompt = `You are ClearScript, a Clinical Pharmacist AI. Analyze this prescription image.
 
-CRITICAL RULES:
-1. ALL JSON field values MUST be in English only - no Hindi, Bengali, or any other script
-2. For ocrInterpretation: transliterate/translate the prescription content to English
-3. Keep medication names as standard medical names (e.g. "Paracetamol 500mg")
-4. Do NOT repeat characters or words - if unsure, write "unclear"
-5. Return ONLY valid JSON, no markdown
+LANGUAGE: ${langInstruction}
+IMPORTANT: Keep medication names as standard international medical names (e.g. Paracetamol, Amoxicillin).
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanation outside JSON.
+IMPORTANT: Do NOT repeat characters or words. If a section is unclear, write a short phrase like "unclear" in the response language.
 
-Return this exact JSON structure:
+Return this exact JSON structure (all string values in the specified language):
 {
-  "ocrInterpretation": "English transliteration of prescription text",
+  "ocrInterpretation": "transcription/translation of prescription text",
   "medications": [
     {
-      "name": "medication name in English",
+      "name": "medication name",
       "dosage": "e.g. 500mg",
-      "frequency": "e.g. Twice daily (BID)",
+      "frequency": "e.g. twice daily",
       "duration": "e.g. 7 days",
-      "instructions": "plain English patient instructions",
+      "instructions": "patient instructions",
       "confidence": "High"
     }
   ],
-  "ambiguityFlags": ["any unclear parts in English"],
+  "ambiguityFlags": ["any unclear parts"],
   "graphologyAnalysis": [
     {
-      "observedStroke": "description in English",
-      "interpretedAs": "medication or instruction in English",
+      "observedStroke": "stroke description",
+      "interpretedAs": "what it means",
       "confidence": "High",
       "strokePressure": "Medium",
       "slant": "Vertical"
     }
   ],
   "verificationRequired": true,
-  "safetyAdvice": "safety advice in English",
-  "reassuranceLine": "reassuring message in English",
-  "reasoningSummary": "brief summary in English"
+  "safetyAdvice": "safety advice",
+  "reassuranceLine": "reassuring message",
+  "reasoningSummary": "brief summary"
 }`;
 
     const response = await client.send(
@@ -82,18 +93,16 @@ Return this exact JSON structure:
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     const text = responseBody.output?.message?.content?.[0]?.text || '';
 
-    // Extract JSON - find outermost { }
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
 
     if (start === -1 || end === -1 || end <= start) {
-      console.error('No JSON found in response. Text length:', text.length);
       return {
         statusCode: 200,
         body: JSON.stringify({
           ocrInterpretation: 'Could not extract text from prescription.',
           medications: [],
-          ambiguityFlags: ['Image may be unclear or unsupported format.'],
+          ambiguityFlags: ['Image may be unclear. Please try a higher quality photo.'],
           verificationRequired: true,
           safetyAdvice: 'Please consult your pharmacist directly.',
           reassuranceLine: 'Try uploading a clearer image.',
@@ -102,32 +111,25 @@ Return this exact JSON structure:
       };
     }
 
-    const jsonStr = text.slice(start, end + 1);
-
     let parsed;
     try {
-      parsed = JSON.parse(jsonStr);
-    } catch (parseErr) {
-      console.error('JSON parse failed. Length:', jsonStr.length, 'Error:', parseErr);
-      // Return safe fallback instead of 500
+      parsed = JSON.parse(text.slice(start, end + 1));
+    } catch {
       return {
         statusCode: 200,
         body: JSON.stringify({
           ocrInterpretation: 'Prescription detected but could not be fully decoded.',
           medications: [],
-          ambiguityFlags: ['Response parsing failed. Please try again with a clearer image.'],
+          ambiguityFlags: ['Please try again with a clearer image.'],
           verificationRequired: true,
           safetyAdvice: 'Please verify all medications with your pharmacist.',
-          reassuranceLine: 'Try again with better lighting or a higher resolution photo.',
+          reassuranceLine: 'Try again with better lighting or higher resolution.',
           reasoningSummary: 'Partial decode - manual verification required.',
         }),
       };
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify(parsed),
-    };
+    return { statusCode: 200, body: JSON.stringify(parsed) };
   } catch (err: any) {
     console.error('ClearScript error:', err?.message || err);
     return {
