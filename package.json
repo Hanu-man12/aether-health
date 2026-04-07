@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "fetch-lambda-urls": "node scripts/fetch-lambda-urls.mjs",
     "amplify:sandbox": "npx ampx sandbox",
     "amplify:deploy": "npx ampx pipeline-deploy"
   },
