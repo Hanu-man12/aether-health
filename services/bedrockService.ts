@@ -111,35 +111,23 @@ export const generateAetherResponse = async (
     [ElementType.WATER]: LAMBDA_URLS.hydroguard,
   };
 
-  // WATER: use Lambda if URL set, else mock
+  // WATER: always call Lambda with userProfile
   if (element === ElementType.WATER) {
     const url = elementToLambda[ElementType.WATER];
-    if (url) {
-      return callLambda(url, { location: input || 'general urban area', userProfile });
-    }
-    // Mock fallback
-    await new Promise((r) => setTimeout(r, 1200));
-    return {
-      waterQualityRisk: 'Moderate',
-      reportSummary: 'Simulated analysis indicates slightly elevated turbidity due to seasonal rainfall.',
-      reasoningSummary: 'Cross-referenced municipal sensor data with meteorological patterns.',
-      safetyAdvice: 'Tap water remains safe for consumption.',
-      reassuranceLine: 'City filtration systems are effectively managing the sediment load.',
-      whatThisMeans: 'The water might look a bit cloudy, but it is safe.',
-      emotionalState: 'Calm',
-    };
+    if (!url) throw new Error('HydroGuard Lambda URL not configured.');
+    return callLambda(url, { location: input || 'general urban area', userProfile });
   }
 
-  // SPACE: aggregate context, call vitalscan lambda or return synthesized mock
+  // SPACE: call vitalscan lambda with context, or return static data
   if (element === ElementType.SPACE) {
-    const url = LAMBDA_URLS.vitalscan; // reuse or add a dedicated space lambda
+    const url = LAMBDA_URLS.vitalscan;
     if (url && contextData && Object.keys(contextData).length > 0) {
       return callLambda(url, {
-        input: `Generate LifeLoop dashboard. Context: ${JSON.stringify(contextData)}`,
+        input: `Generate a LifeLoop holistic wellness dashboard summary based on this health context: ${JSON.stringify(contextData)}`,
         userProfile,
       });
     }
-    // Static welcome dashboard
+    // Static fallback - always English (no Lambda call needed for welcome screen)
     return {
       dashboardContext: 'Welcome to LifeLoop. Use the other elements to build your health snapshot.',
       actionableTips: ['Stay hydrated - drink 8 glasses of water today.', 'Take a 10-minute walk.', 'Practice box breathing for 5 minutes.'],
