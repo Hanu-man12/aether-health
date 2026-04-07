@@ -1,7 +1,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-pro-v1:0';
+const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
 export const handler = async (event: any) => {
   try {
@@ -12,7 +12,6 @@ export const handler = async (event: any) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
-    // Detect format from data URI or default to jpeg
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
     let rawBase64 = imageBase64;
     if (imageBase64.startsWith('data:')) {
@@ -23,36 +22,43 @@ export const handler = async (event: any) => {
       rawBase64 = imageBase64.split(',')[1];
     }
 
-    // InvokeModel API requires base64 string for image bytes (not binary/Buffer)
-    const imageBase64ForBedrock = rawBase64;
+    // InvokeModel API requires base64 string (not binary) for image bytes
+    const prompt = `You are ClearScript, a Clinical Pharmacist AI. Analyze this prescription image.
 
-    const prompt = `You are ClearScript, an expert Clinical Pharmacist and Forensic Graphologist.
-Decode this handwritten prescription image. Expand all Latin abbreviations (BID, TID, PRN, etc.).
-User Language: ${userProfile?.language || 'en'}
+CRITICAL RULES:
+1. ALL JSON field values MUST be in English only - no Hindi, Bengali, or any other script
+2. For ocrInterpretation: transliterate/translate the prescription content to English
+3. Keep medication names as standard medical names (e.g. "Paracetamol 500mg")
+4. Do NOT repeat characters or words - if unsure, write "unclear"
+5. Return ONLY valid JSON, no markdown
 
-Return ONLY valid JSON, no markdown, no explanation:
+Return this exact JSON structure:
 {
-  "ocrInterpretation": "string",
-  "medications": [{
-    "name": "string",
-    "dosage": "string",
-    "frequency": "string",
-    "duration": "string",
-    "instructions": "string",
-    "confidence": "High|Medium|Low"
-  }],
-  "ambiguityFlags": ["string"],
-  "graphologyAnalysis": [{
-    "observedStroke": "string",
-    "interpretedAs": "string",
-    "confidence": "string",
-    "strokePressure": "Light|Medium|Heavy",
-    "slant": "Left|Vertical|Right"
-  }],
+  "ocrInterpretation": "English transliteration of prescription text",
+  "medications": [
+    {
+      "name": "medication name in English",
+      "dosage": "e.g. 500mg",
+      "frequency": "e.g. Twice daily (BID)",
+      "duration": "e.g. 7 days",
+      "instructions": "plain English patient instructions",
+      "confidence": "High"
+    }
+  ],
+  "ambiguityFlags": ["any unclear parts in English"],
+  "graphologyAnalysis": [
+    {
+      "observedStroke": "description in English",
+      "interpretedAs": "medication or instruction in English",
+      "confidence": "High",
+      "strokePressure": "Medium",
+      "slant": "Vertical"
+    }
+  ],
   "verificationRequired": true,
-  "safetyAdvice": "string",
-  "reassuranceLine": "string",
-  "reasoningSummary": "string"
+  "safetyAdvice": "safety advice in English",
+  "reassuranceLine": "reassuring message in English",
+  "reasoningSummary": "brief summary in English"
 }`;
 
     const response = await client.send(
@@ -64,44 +70,56 @@ Return ONLY valid JSON, no markdown, no explanation:
           messages: [{
             role: 'user',
             content: [
-              { image: { format, source: { bytes: imageBase64ForBedrock } } },
+              { image: { format, source: { bytes: rawBase64 } } },
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 2048, temperature: 0.2 },
+          inferenceConfig: { maxTokens: 2048, temperature: 0.1 },
         }),
       })
     );
 
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.output?.message?.content?.[0]?.text || '{}';
-    
-    // Extract JSON block - handle truncated responses
-    let jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    // Find the outermost JSON object boundaries
-    const start = jsonStr.indexOf('{');
-    const end = jsonStr.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) {
-      jsonStr = jsonStr.slice(start, end + 1);
+    const text = responseBody.output?.message?.content?.[0]?.text || '';
+
+    // Extract JSON - find outermost { }
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+
+    if (start === -1 || end === -1 || end <= start) {
+      console.error('No JSON found in response. Text length:', text.length);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          ocrInterpretation: 'Could not extract text from prescription.',
+          medications: [],
+          ambiguityFlags: ['Image may be unclear or unsupported format.'],
+          verificationRequired: true,
+          safetyAdvice: 'Please consult your pharmacist directly.',
+          reassuranceLine: 'Try uploading a clearer image.',
+          reasoningSummary: 'AI could not parse the prescription.',
+        }),
+      };
     }
+
+    const jsonStr = text.slice(start, end + 1);
 
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
     } catch (parseErr) {
-      console.error('ClearScript JSON parse error:', parseErr, 'Raw text length:', text.length);
-      // Return partial result with what we have
+      console.error('JSON parse failed. Length:', jsonStr.length, 'Error:', parseErr);
+      // Return safe fallback instead of 500
       return {
         statusCode: 200,
         body: JSON.stringify({
-          ocrInterpretation: text.slice(0, 500),
+          ocrInterpretation: 'Prescription detected but could not be fully decoded.',
           medications: [],
-          ambiguityFlags: ['Response was truncated. Please try with a clearer image.'],
+          ambiguityFlags: ['Response parsing failed. Please try again with a clearer image.'],
           verificationRequired: true,
-          safetyAdvice: 'Could not fully parse the prescription. Please verify with your pharmacist.',
-          reassuranceLine: 'Please try again with a higher quality image.',
-          reasoningSummary: 'AI response was truncated due to length.',
+          safetyAdvice: 'Please verify all medications with your pharmacist.',
+          reassuranceLine: 'Try again with better lighting or a higher resolution photo.',
+          reasoningSummary: 'Partial decode - manual verification required.',
         }),
       };
     }
@@ -111,7 +129,7 @@ Return ONLY valid JSON, no markdown, no explanation:
       body: JSON.stringify(parsed),
     };
   } catch (err: any) {
-    console.error('ClearScript error:', err?.message || err, err?.stack);
+    console.error('ClearScript error:', err?.message || err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err?.message || 'Prescription analysis failed. Please try again.' }),
