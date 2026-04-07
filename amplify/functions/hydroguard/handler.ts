@@ -8,16 +8,6 @@ Generate realistic water quality reports based on location/context.
 Always return valid JSON only, no markdown.`;
 
 export const handler = async (event: any) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-    'Content-Type': 'application/json',
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
     const { location, userProfile } = body;
@@ -56,14 +46,12 @@ Generate a water quality safety report. Return JSON:
 
     return {
       statusCode: 200,
-      headers,
       body: JSON.stringify(JSON.parse(cleaned)),
     };
   } catch (err) {
     console.error('HydroGuard error:', err);
     return {
       statusCode: 500,
-      headers,
       body: JSON.stringify({ error: 'Water quality report failed. Please try again.' }),
     };
   }

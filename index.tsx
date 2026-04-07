@@ -1,6 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { configureLambdaUrls } from './services/bedrockService';
+import { LAMBDA_URLS } from './services/amplifyConfig';
+
+// Initialize Lambda URLs from env vars (set after sandbox deploy)
+configureLambdaUrls(LAMBDA_URLS);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -18,8 +18,12 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@aws-amplify/backend": "^1.22.0",
+    "@aws-amplify/backend-cli": "^1.8.2",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "aws-cdk-lib": "^2.248.0",
+    "constructs": "^10.6.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

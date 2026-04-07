@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ElementType, AnalysisResult, UserProfile, HealthStatus } from './types';
 import { ELEMENTS } from './constants';
 import { TRANSLATIONS } from './translations';
-import { generateAetherResponse, routeVoiceIntent, generateVoiceAudio, getBuddyResponse, generateAppLogo } from './services/geminiService';
+import { generateAetherResponse, routeVoiceIntent, generateVoiceAudio, getBuddyResponse, generateAppLogo } from './services/bedrockService';
 import SanctuaryHome from './components/DashboardSphere'; // Renamed conceptually
 import OutputDisplay from './components/OutputDisplay';
 import TrustPanel from './components/TrustPanel';

@@ -8,22 +8,12 @@ Analyze symptoms to reduce anxiety. Never diagnose. Use probability-based reason
 Always return valid JSON only, no markdown.`;
 
 export const handler = async (event: any) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-    'Content-Type': 'application/json',
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
     const { input, userProfile } = body;
 
     if (!input) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'input is required' }) };
+      return { statusCode: 400, body: JSON.stringify({ error: 'input is required' }) };
     }
 
     const prompt = `${SYSTEM_PROMPT}
@@ -61,14 +51,12 @@ Return JSON with these exact fields:
 
     return {
       statusCode: 200,
-      headers,
       body: JSON.stringify(JSON.parse(cleaned)),
     };
   } catch (err) {
     console.error('VitalScan error:', err);
     return {
       statusCode: 500,
-      headers,
       body: JSON.stringify({ error: 'Analysis failed. Please try again.' }),
     };
   }
