@@ -10,9 +10,9 @@ const LANG_INSTRUCTION: Record<string, string> = {
   bn: 'আপনাকে সম্পূর্ণ বাংলায় উত্তর দিতে হবে। JSON-এর সমস্ত string values বাংলায় হতে হবে।',
   es: 'Debes responder completamente en español. Todos los valores string del JSON deben estar en español.',
   fr: 'Vous devez répondre entièrement en français. Toutes les valeurs string du JSON doivent être en français.',
-  de: 'Sie müssen vollständig auf Deutsch antworten. Alle String-Werte im JSON müssen auf Deutsch sein.',
-  zh: '您必须完全用简体中文回答。JSON中的所有字符串值必须用中文。',
-  ja: '完全に日本語で回答してください。JSONのすべての文字列値は日本語でなければなりません。',
+  de: 'Du MUSST vollständig auf Deutsch antworten. Alle Textwerte im JSON müssen auf Deutsch sein. Keine englischen Wörter verwenden.',
+  zh: '你必须完全用简体中文回答。JSON中的所有文本值必须用中文写。不要使用英文。',
+  ja: '必ず完全に日本語で回答してください。JSONのすべてのテキスト値は日本語で書いてください。英語を使わないでください。',
 };
 
 export const handler = async (event: any) => {
@@ -51,6 +51,7 @@ IMPORTANT: Medication names must remain as standard international medical names 
 IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no text outside JSON.
 IMPORTANT: Do NOT repeat characters or words. If unclear, write a short phrase like "unclear" in the response language.
 IMPORTANT: Even if handwriting is difficult, make your best attempt to read and interpret it.
+IMPORTANT: Every single string value in the JSON (except medication names) MUST be written in the language specified above. This is mandatory.
 
 Return this exact JSON structure (all string values in the specified language, except medication names):
 {
@@ -59,8 +60,8 @@ Return this exact JSON structure (all string values in the specified language, e
     {
       "name": "medication name (keep international name)",
       "dosage": "e.g. 500mg",
-      "frequency": "e.g. twice daily",
-      "duration": "e.g. 7 days",
+      "frequency": "e.g. twice daily - translate this to the specified language",
+      "duration": "e.g. 7 days - translate this to the specified language",
       "instructions": "patient instructions in the specified language",
       "confidence": "High or Medium or Low"
     }

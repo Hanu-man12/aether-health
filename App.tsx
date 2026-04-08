@@ -132,10 +132,13 @@ const App: React.FC = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Keep full data URI (including data:image/webp;base64, prefix)
-        // so Lambda can detect correct MIME type (important for mobile WebP images)
         const base64String = reader.result as string;
         setSelectedImage(base64String);
+        // Reset result so Analyze button shows again after replacing image
+        if (currentElement) {
+          setResults(prev => ({ ...prev, [currentElement]: null }));
+        }
+        setError(null);
       };
       reader.readAsDataURL(file);
     }
