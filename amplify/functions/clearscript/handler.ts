@@ -82,32 +82,47 @@ Return this exact JSON structure (all string values in the specified language, e
   "reasoningSummary": "brief summary in the specified language"
 }`;
 
-    const response = await client.send(
-      new InvokeModelCommand({
-        modelId: MODEL_ID,
-        contentType: 'application/json',
-        accept: 'application/json',
-        body: JSON.stringify({
-          system: [{ text: langInstruction }],
-          messages: [{
-            role: 'user',
-            content: [
-              { image: { format, source: { bytes: rawBase64 } } },
-              { text: prompt },
-            ],
-          }],
-          inferenceConfig: { maxTokens: 4096, temperature: 0.1 },
-        }),
-      })
-    );
+    const callModel = async (): Promise<string> => {
+      const response = await client.send(
+        new InvokeModelCommand({
+          modelId: MODEL_ID,
+          contentType: 'application/json',
+          accept: 'application/json',
+          body: JSON.stringify({
+            system: [{ text: langInstruction }],
+            messages: [{
+              role: 'user',
+              content: [
+                { image: { format, source: { bytes: rawBase64 } } },
+                { text: prompt },
+              ],
+            }],
+            inferenceConfig: { maxTokens: 4096, temperature: 0.1 },
+          }),
+        })
+      );
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+      return responseBody.output?.message?.content?.[0]?.text || '';
+    };
 
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.output?.message?.content?.[0]?.text || '';
+    // Retry up to 3 times if JSON not found or parse fails
+    let text = '';
+    let parsed: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      text = await callModel();
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        try {
+          parsed = JSON.parse(text.slice(start, end + 1));
+          break; // success
+        } catch {
+          // JSON parse failed, retry
+        }
+      }
+    }
 
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-
-    if (start === -1 || end === -1 || end <= start) {
+    if (!parsed) {
       return {
         statusCode: 200,
         body: JSON.stringify({
@@ -118,24 +133,6 @@ Return this exact JSON structure (all string values in the specified language, e
           safetyAdvice: 'Please consult your pharmacist directly.',
           reassuranceLine: 'Try uploading a clearer image.',
           reasoningSummary: 'AI could not parse the prescription.',
-        }),
-      };
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text.slice(start, end + 1));
-    } catch {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          ocrInterpretation: 'Prescription detected but could not be fully decoded.',
-          medications: [],
-          ambiguityFlags: ['Please try again with a clearer image.'],
-          verificationRequired: true,
-          safetyAdvice: 'Please verify all medications with your pharmacist.',
-          reassuranceLine: 'Try again with better lighting or higher resolution.',
-          reasoningSummary: 'Partial decode - manual verification required.',
         }),
       };
     }

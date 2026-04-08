@@ -63,35 +63,47 @@ Return this exact JSON structure:
   "reasoningSummary": "brief analysis summary in the specified language"
 }`;
 
-    const response = await client.send(
-      new InvokeModelCommand({
-        modelId: MODEL_ID,
-        contentType: 'application/json',
-        accept: 'application/json',
-        body: JSON.stringify({
-          system: [{ text: langInstruction }],
-          messages: [{
-            role: 'user',
-            content: [
-              { image: { format, source: { bytes: rawBase64 } } },
-              { text: prompt },
-            ],
-          }],
-          inferenceConfig: { maxTokens: 2048, temperature: 0.1 },
-        }),
-      })
-    );
+    const callModel = async (): Promise<string> => {
+      const response = await client.send(
+        new InvokeModelCommand({
+          modelId: MODEL_ID,
+          contentType: 'application/json',
+          accept: 'application/json',
+          body: JSON.stringify({
+            system: [{ text: langInstruction }],
+            messages: [{
+              role: 'user',
+              content: [
+                { image: { format, source: { bytes: rawBase64 } } },
+                { text: prompt },
+              ],
+            }],
+            inferenceConfig: { maxTokens: 2048, temperature: 0.1 },
+          }),
+        })
+      );
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+      return responseBody.output?.message?.content?.[0]?.text || '';
+    };
 
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const text = responseBody.output?.message?.content?.[0]?.text || '';
+    let parsed: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const text = await callModel();
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        try {
+          parsed = JSON.parse(text.slice(start, end + 1));
+          break;
+        } catch { /* retry */ }
+      }
+    }
 
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error('No JSON in response');
+    if (!parsed) throw new Error('No JSON in response after retries');
 
     return {
       statusCode: 200,
-      body: JSON.stringify(JSON.parse(text.slice(start, end + 1))),
+      body: JSON.stringify(parsed),
     };
   } catch (err: any) {
     console.error('TrueMeds error:', err?.message || err);
