@@ -88,6 +88,7 @@ Return this exact JSON structure (all string values in the specified language, e
         contentType: 'application/json',
         accept: 'application/json',
         body: JSON.stringify({
+          system: [{ text: langInstruction }],
           messages: [{
             role: 'user',
             content: [

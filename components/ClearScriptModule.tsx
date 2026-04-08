@@ -122,7 +122,14 @@ const ClearScriptModule: React.FC<ClearScriptModuleProps> = ({
                      <label htmlFor="replace-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold py-3 rounded-xl text-center transition-all">
                         Replace Document
                      </label>
-                     <input type="file" id="replace-upload" className="hidden" accept="image/*" onChange={onImageUpload} />
+                     <input
+                       type="file"
+                       id="replace-upload"
+                       className="hidden"
+                       accept="image/*"
+                       onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
+                       onChange={onImageUpload}
+                     />
                   </div>
                 </>
               ) : (

@@ -69,6 +69,7 @@ Return this exact JSON structure:
         contentType: 'application/json',
         accept: 'application/json',
         body: JSON.stringify({
+          system: [{ text: langInstruction }],
           messages: [{
             role: 'user',
             content: [
