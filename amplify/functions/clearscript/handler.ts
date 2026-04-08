@@ -1,17 +1,18 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
+// Nova Pro for better image understanding + multilingual support
+const MODEL_ID = 'amazon.nova-pro-v1:0';
 
 const LANG_INSTRUCTION: Record<string, string> = {
-  en: 'Respond in English.',
-  hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
-  bn: 'Respond in Bengali (Bengali script). All JSON string values must be in Bengali.',
-  es: 'Respond in Spanish. All JSON string values must be in Spanish.',
-  fr: 'Respond in French. All JSON string values must be in French.',
-  de: 'Respond in German. All JSON string values must be in German.',
-  zh: 'Respond in Simplified Chinese. All JSON string values must be in Chinese.',
-  ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
+  en: 'You MUST respond entirely in English.',
+  hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए।',
+  bn: 'আপনাকে সম্পূর্ণ বাংলায় উত্তর দিতে হবে। JSON-এর সমস্ত string values বাংলায় হতে হবে।',
+  es: 'Debes responder completamente en español. Todos los valores string del JSON deben estar en español.',
+  fr: 'Vous devez répondre entièrement en français. Toutes les valeurs string du JSON doivent être en français.',
+  de: 'Sie müssen vollständig auf Deutsch antworten. Alle String-Werte im JSON müssen auf Deutsch sein.',
+  zh: '您必须完全用简体中文回答。JSON中的所有字符串值必须用中文。',
+  ja: '完全に日本語で回答してください。JSONのすべての文字列値は日本語でなければなりません。',
 };
 
 export const handler = async (event: any) => {
@@ -33,51 +34,51 @@ export const handler = async (event: any) => {
       else format = 'jpeg';
       rawBase64 = imageBase64.split(',')[1];
     } else {
-      // No data URI prefix - detect from base64 magic bytes
       const header = rawBase64.substring(0, 12);
-      if (header.startsWith('iVBORw')) format = 'png';           // PNG
-      else if (header.startsWith('UklGR')) format = 'webp';      // RIFF/WebP
-      else if (header.startsWith('R0lGOD')) format = 'gif';      // GIF
-      else format = 'jpeg';                                        // default JPEG
+      if (header.startsWith('iVBORw')) format = 'png';
+      else if (header.startsWith('UklGR')) format = 'webp';
+      else if (header.startsWith('R0lGOD')) format = 'gif';
+      else format = 'jpeg';
     }
 
     const lang = userProfile?.language || 'en';
     const langInstruction = LANG_INSTRUCTION[lang] || LANG_INSTRUCTION['en'];
 
-    const prompt = `You are ClearScript, a Clinical Pharmacist AI. Analyze this prescription image.
+    const prompt = `You are ClearScript, a Clinical Pharmacist AI. Carefully analyze this prescription image.
 
-LANGUAGE: ${langInstruction}
-IMPORTANT: Keep medication names as standard international medical names (e.g. Paracetamol, Amoxicillin).
-IMPORTANT: Return ONLY valid JSON. No markdown, no explanation outside JSON.
-IMPORTANT: Do NOT repeat characters or words. If a section is unclear, write a short phrase like "unclear" in the response language.
+CRITICAL LANGUAGE RULE: ${langInstruction}
+IMPORTANT: Medication names must remain as standard international medical names (e.g. Paracetamol, Amoxicillin).
+IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no text outside JSON.
+IMPORTANT: Do NOT repeat characters or words. If unclear, write a short phrase like "unclear" in the response language.
+IMPORTANT: Even if handwriting is difficult, make your best attempt to read and interpret it.
 
-Return this exact JSON structure (all string values in the specified language):
+Return this exact JSON structure (all string values in the specified language, except medication names):
 {
-  "ocrInterpretation": "transcription/translation of prescription text",
+  "ocrInterpretation": "full transcription of all text visible in the prescription",
   "medications": [
     {
-      "name": "medication name",
+      "name": "medication name (keep international name)",
       "dosage": "e.g. 500mg",
       "frequency": "e.g. twice daily",
       "duration": "e.g. 7 days",
-      "instructions": "patient instructions",
-      "confidence": "High"
+      "instructions": "patient instructions in the specified language",
+      "confidence": "High or Medium or Low"
     }
   ],
-  "ambiguityFlags": ["any unclear parts"],
+  "ambiguityFlags": ["any unclear parts in the specified language"],
   "graphologyAnalysis": [
     {
-      "observedStroke": "stroke description",
-      "interpretedAs": "what it means",
-      "confidence": "High",
-      "strokePressure": "Medium",
-      "slant": "Vertical"
+      "observedStroke": "stroke description in the specified language",
+      "interpretedAs": "what it means in the specified language",
+      "confidence": "High or Medium or Low",
+      "strokePressure": "Heavy or Medium or Light",
+      "slant": "Left or Vertical or Right"
     }
   ],
   "verificationRequired": true,
-  "safetyAdvice": "safety advice",
-  "reassuranceLine": "reassuring message",
-  "reasoningSummary": "brief summary"
+  "safetyAdvice": "safety advice in the specified language",
+  "reassuranceLine": "reassuring message in the specified language",
+  "reasoningSummary": "brief summary in the specified language"
 }`;
 
     const response = await client.send(

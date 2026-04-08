@@ -119,9 +119,10 @@ const ClearScriptModule: React.FC<ClearScriptModuleProps> = ({
                   )}
 
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
-                     <label htmlFor="desk-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold py-3 rounded-xl text-center transition-all">
+                     <label htmlFor="replace-upload" className="cursor-pointer bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold py-3 rounded-xl text-center transition-all">
                         Replace Document
                      </label>
+                     <input type="file" id="replace-upload" className="hidden" accept="image/*" onChange={onImageUpload} />
                   </div>
                 </>
               ) : (

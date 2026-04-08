@@ -1,17 +1,18 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
-const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
+// Nova Pro for better multilingual + image understanding
+const MODEL_ID = 'amazon.nova-pro-v1:0';
 
 const LANG_INSTRUCTION: Record<string, string> = {
-  en: 'Respond in English.',
-  hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
-  bn: 'Respond in Bengali (Bengali script). All JSON string values must be in Bengali.',
-  es: 'Respond in Spanish. All JSON string values must be in Spanish.',
-  fr: 'Respond in French. All JSON string values must be in French.',
-  de: 'Respond in German. All JSON string values must be in German.',
-  zh: 'Respond in Simplified Chinese. All JSON string values must be in Chinese.',
-  ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
+  en: 'You MUST respond entirely in English.',
+  hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए। कोई भी अंग्रेजी शब्द उपयोग न करें।',
+  bn: 'আপনাকে সম্পূর্ণ বাংলায় উত্তর দিতে হবে। JSON-এর সমস্ত string values বাংলায় হতে হবে। কোনো ইংরেজি শব্দ ব্যবহার করবেন না।',
+  es: 'Debes responder completamente en español. Todos los valores string del JSON deben estar en español.',
+  fr: 'Vous devez répondre entièrement en français. Toutes les valeurs string du JSON doivent être en français.',
+  de: 'Sie müssen vollständig auf Deutsch antworten. Alle String-Werte im JSON müssen auf Deutsch sein.',
+  zh: '您必须完全用简体中文回答。JSON中的所有字符串值必须用中文。',
+  ja: '完全に日本語で回答してください。JSONのすべての文字列値は日本語でなければなりません。',
 };
 
 export const handler = async (event: any) => {
@@ -44,19 +45,22 @@ export const handler = async (event: any) => {
     const langInstruction = LANG_INSTRUCTION[lang] || LANG_INSTRUCTION['en'];
 
     const prompt = `You are TrueMeds, a forensic medicine packaging verifier.
-Analyze packaging for authenticity: typography, print quality, seals, batch numbers.
-IMPORTANT: Return ONLY valid JSON. No markdown, no text outside JSON.
+Analyze this medicine packaging image for authenticity: typography, print quality, seals, batch numbers, hologram, expiry date.
 
-LANGUAGE: ${langInstruction}
+CRITICAL LANGUAGE RULE: ${langInstruction}
 
-Return this exact JSON (all string values in the specified language):
+IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, no text outside JSON.
+All string values in the JSON must be in the language specified above.
+Medicine name can remain in its standard international form.
+
+Return this exact JSON structure:
 {
-  "medicineIdentified": "medicine name",
-  "authenticityConfidence": "High",
-  "redFlags": ["any suspicious elements"],
-  "safetyAdvice": "safety advice",
-  "reassuranceLine": "reassuring message",
-  "reasoningSummary": "brief summary"
+  "medicineIdentified": "medicine name as seen on packaging",
+  "authenticityConfidence": "High or Medium or Low",
+  "redFlags": ["list any suspicious elements, or empty array if none"],
+  "safetyAdvice": "safety advice in the specified language",
+  "reassuranceLine": "reassuring message in the specified language",
+  "reasoningSummary": "brief analysis summary in the specified language"
 }`;
 
     const response = await client.send(
@@ -72,7 +76,7 @@ Return this exact JSON (all string values in the specified language):
               { text: prompt },
             ],
           }],
-          inferenceConfig: { maxTokens: 2048, temperature: 0.2 },
+          inferenceConfig: { maxTokens: 2048, temperature: 0.1 },
         }),
       })
     );
