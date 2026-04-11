@@ -98,7 +98,7 @@ Return this exact JSON structure:
     };
 
     let parsed: any = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       const text = await callModel();
       const start = text.indexOf('{');
       const end = text.lastIndexOf('}');
