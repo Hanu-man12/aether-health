@@ -5,8 +5,10 @@ amplify_outputs.json
 # Prompt history (not needed in repo)
 migrated_prompt_history/
 
-# Env files
-.env*
+# Env files - keep .env in repo for Vite build
+# .env is safe to commit - contains only Lambda URLs (no secrets)
+.env.local
+.env.*.local
 
 # Logs
 logs
