@@ -3,13 +3,6 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 'us-east-1' });
 const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'amazon.nova-lite-v1:0';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
-  'Content-Type': 'application/json',
-};
-
 const LANG_INSTRUCTION: Record<string, string> = {
   en: 'Respond in English.',
   hi: 'Respond in Hindi (Devanagari script). All JSON string values must be in Hindi.',
@@ -22,10 +15,6 @@ const LANG_INSTRUCTION: Record<string, string> = {
 };
 
 export const handler = async (event: any) => {
-  if (event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
     const { location, userProfile } = body;
@@ -72,14 +61,12 @@ Return this exact JSON (all string values in the specified language):
 
     return {
       statusCode: 200,
-      headers: CORS_HEADERS,
       body: JSON.stringify(JSON.parse(text.slice(start, end + 1))),
     };
   } catch (err: any) {
     console.error('HydroGuard error:', err?.message || err);
     return {
       statusCode: 500,
-      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Water quality report failed. Please try again.' }),
     };
   }

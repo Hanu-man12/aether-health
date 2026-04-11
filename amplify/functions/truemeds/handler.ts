@@ -4,13 +4,6 @@ const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 
 // Nova Pro for better multilingual + image understanding
 const MODEL_ID = 'amazon.nova-pro-v1:0';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
-  'Content-Type': 'application/json',
-};
-
 const LANG_INSTRUCTION: Record<string, string> = {
   en: 'You MUST respond entirely in English.',
   hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए। कोई भी अंग्रेजी शब्द उपयोग न करें।',
@@ -23,16 +16,12 @@ const LANG_INSTRUCTION: Record<string, string> = {
 };
 
 export const handler = async (event: any) => {
-  if (event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
     const { imageBase64, userProfile } = body;
 
     if (!imageBase64) {
-      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'imageBase64 is required' }) };
+      return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
@@ -98,7 +87,7 @@ Return this exact JSON structure:
     };
 
     let parsed: any = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const text = await callModel();
       const start = text.indexOf('{');
       const end = text.lastIndexOf('}');
@@ -114,14 +103,12 @@ Return this exact JSON structure:
 
     return {
       statusCode: 200,
-      headers: CORS_HEADERS,
       body: JSON.stringify(parsed),
     };
   } catch (err: any) {
     console.error('TrueMeds error:', err?.message || err);
     return {
       statusCode: 500,
-      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Medicine verification failed. Please try again.' }),
     };
   }

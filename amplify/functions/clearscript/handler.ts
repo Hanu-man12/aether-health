@@ -4,13 +4,6 @@ const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 
 // Nova Pro for better image understanding + multilingual support
 const MODEL_ID = 'amazon.nova-pro-v1:0';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-  'Access-Control-Allow-Methods': 'POST,OPTIONS',
-  'Content-Type': 'application/json',
-};
-
 const LANG_INSTRUCTION: Record<string, string> = {
   en: 'You MUST respond entirely in English.',
   hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए।',
@@ -23,16 +16,12 @@ const LANG_INSTRUCTION: Record<string, string> = {
 };
 
 export const handler = async (event: any) => {
-  if (event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
-  }
-
   try {
     const body = JSON.parse(event.body || '{}');
     const { imageBase64, userProfile } = body;
 
     if (!imageBase64) {
-      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'imageBase64 is required' }) };
+      return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
@@ -116,10 +105,10 @@ Return this exact JSON structure (all string values in the specified language, e
       return responseBody.output?.message?.content?.[0]?.text || '';
     };
 
-    // Retry up to 2 times if JSON not found or parse fails
+    // Retry up to 3 times if JSON not found or parse fails
     let text = '';
     let parsed: any = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       text = await callModel();
       const start = text.indexOf('{');
       const end = text.lastIndexOf('}');
@@ -136,7 +125,6 @@ Return this exact JSON structure (all string values in the specified language, e
     if (!parsed) {
       return {
         statusCode: 200,
-        headers: CORS_HEADERS,
         body: JSON.stringify({
           ocrInterpretation: 'Could not extract text from prescription.',
           medications: [],
@@ -149,12 +137,11 @@ Return this exact JSON structure (all string values in the specified language, e
       };
     }
 
-    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(parsed) };
+    return { statusCode: 200, body: JSON.stringify(parsed) };
   } catch (err: any) {
     console.error('ClearScript error:', err?.message || err);
     return {
       statusCode: 500,
-      headers: CORS_HEADERS,
       body: JSON.stringify({ error: err?.message || 'Prescription analysis failed. Please try again.' }),
     };
   }
