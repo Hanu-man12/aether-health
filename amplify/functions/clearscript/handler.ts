@@ -116,10 +116,10 @@ Return this exact JSON structure (all string values in the specified language, e
       return responseBody.output?.message?.content?.[0]?.text || '';
     };
 
-    // Retry up to 3 times if JSON not found or parse fails
+    // Retry up to 2 times if JSON not found or parse fails
     let text = '';
     let parsed: any = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       text = await callModel();
       const start = text.indexOf('{');
       const end = text.lastIndexOf('}');
