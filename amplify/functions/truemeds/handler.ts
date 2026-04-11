@@ -32,7 +32,7 @@ export const handler = async (event: any) => {
     const { imageBase64, userProfile } = body;
 
     if (!imageBase64) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'imageBase64 is required' }) };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'imageBase64 is required' }) };
     }
 
     let format: 'jpeg' | 'png' | 'gif' | 'webp' = 'jpeg';
