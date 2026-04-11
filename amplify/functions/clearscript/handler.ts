@@ -4,6 +4,13 @@ const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 
 // Nova Pro for better image understanding + multilingual support
 const MODEL_ID = 'amazon.nova-pro-v1:0';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Content-Type': 'application/json',
+};
+
 const LANG_INSTRUCTION: Record<string, string> = {
   en: 'You MUST respond entirely in English.',
   hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए।',
@@ -16,6 +23,10 @@ const LANG_INSTRUCTION: Record<string, string> = {
 };
 
 export const handler = async (event: any) => {
+  if (event.requestContext?.http?.method === 'OPTIONS') {
+    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+  }
+
   try {
     const body = JSON.parse(event.body || '{}');
     const { imageBase64, userProfile } = body;
@@ -125,6 +136,7 @@ Return this exact JSON structure (all string values in the specified language, e
     if (!parsed) {
       return {
         statusCode: 200,
+        headers: CORS_HEADERS,
         body: JSON.stringify({
           ocrInterpretation: 'Could not extract text from prescription.',
           medications: [],
@@ -137,11 +149,12 @@ Return this exact JSON structure (all string values in the specified language, e
       };
     }
 
-    return { statusCode: 200, body: JSON.stringify(parsed) };
+    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(parsed) };
   } catch (err: any) {
     console.error('ClearScript error:', err?.message || err);
     return {
       statusCode: 500,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: err?.message || 'Prescription analysis failed. Please try again.' }),
     };
   }

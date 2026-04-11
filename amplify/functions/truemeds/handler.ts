@@ -4,6 +4,13 @@ const client = new BedrockRuntimeClient({ region: process.env.BEDROCK_REGION || 
 // Nova Pro for better multilingual + image understanding
 const MODEL_ID = 'amazon.nova-pro-v1:0';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Content-Type': 'application/json',
+};
+
 const LANG_INSTRUCTION: Record<string, string> = {
   en: 'You MUST respond entirely in English.',
   hi: 'आपको पूरी तरह हिंदी (देवनागरी लिपि) में जवाब देना है। JSON के सभी string values हिंदी में होने चाहिए। कोई भी अंग्रेजी शब्द उपयोग न करें।',
@@ -16,6 +23,10 @@ const LANG_INSTRUCTION: Record<string, string> = {
 };
 
 export const handler = async (event: any) => {
+  if (event.requestContext?.http?.method === 'OPTIONS') {
+    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+  }
+
   try {
     const body = JSON.parse(event.body || '{}');
     const { imageBase64, userProfile } = body;
@@ -103,12 +114,14 @@ Return this exact JSON structure:
 
     return {
       statusCode: 200,
+      headers: CORS_HEADERS,
       body: JSON.stringify(parsed),
     };
   } catch (err: any) {
     console.error('TrueMeds error:', err?.message || err);
     return {
       statusCode: 500,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Medicine verification failed. Please try again.' }),
     };
   }

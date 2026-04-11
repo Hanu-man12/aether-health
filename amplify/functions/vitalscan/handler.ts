@@ -14,13 +14,24 @@ const LANG_INSTRUCTION: Record<string, string> = {
   ja: 'Respond in Japanese. All JSON string values must be in Japanese.',
 };
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
+  'Content-Type': 'application/json',
+};
+
 export const handler = async (event: any) => {
+  if (event.requestContext?.http?.method === 'OPTIONS') {
+    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+  }
+
   try {
     const body = JSON.parse(event.body || '{}');
     const { input, userProfile } = body;
 
     if (!input) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'input is required' }) };
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify({ error: 'input is required' }) };
     }
 
     const lang = userProfile?.language || 'en';
@@ -68,12 +79,14 @@ Return this exact JSON (all string values in the specified language):
 
     return {
       statusCode: 200,
+      headers: CORS_HEADERS,
       body: JSON.stringify(JSON.parse(text.slice(start, end + 1))),
     };
   } catch (err: any) {
     console.error('VitalScan error:', err?.message || err);
     return {
       statusCode: 500,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Analysis failed. Please try again.' }),
     };
   }
