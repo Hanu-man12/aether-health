@@ -8,6 +8,7 @@ import { vitalscan } from './functions/vitalscan/resource';
 import { clearscript } from './functions/clearscript/resource';
 import { truemeds } from './functions/truemeds/resource';
 import { hydroguard } from './functions/hydroguard/resource';
+import { lifeloop } from './functions/lifeloop/resource';
 
 const backend = defineBackend({
   auth,
@@ -17,6 +18,7 @@ const backend = defineBackend({
   clearscript,
   truemeds,
   hydroguard,
+  lifeloop,
 });
 
 // Grant all Lambda functions access to Bedrock Nova Lite
@@ -32,6 +34,7 @@ backend.vitalscan.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.clearscript.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.truemeds.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.hydroguard.resources.lambda.addToRolePolicy(bedrockPolicy);
+backend.lifeloop.resources.lambda.addToRolePolicy(bedrockPolicy);
 
 // Add Lambda Function URLs (CORS enabled for frontend access)
 const corsConfig = {
@@ -60,6 +63,11 @@ new FunctionUrl(backend.truemeds.resources.lambda.stack, 'TruemedsUrl', {
 
 new FunctionUrl(backend.hydroguard.resources.lambda.stack, 'HydroguardUrl', {
   function: backend.hydroguard.resources.lambda,
+  ...corsConfig,
+});
+
+new FunctionUrl(backend.lifeloop.resources.lambda.stack, 'LifeloopUrl', {
+  function: backend.lifeloop.resources.lambda,
   ...corsConfig,
 });
 

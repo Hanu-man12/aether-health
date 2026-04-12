@@ -109,6 +109,7 @@ export const generateAetherResponse = async (
     [ElementType.AIR]: LAMBDA_URLS.clearscript,
     [ElementType.EARTH]: LAMBDA_URLS.truemeds,
     [ElementType.WATER]: LAMBDA_URLS.hydroguard,
+    [ElementType.SPACE]: LAMBDA_URLS.lifeloop,
   };
 
   // WATER: always call Lambda with userProfile
@@ -118,16 +119,17 @@ export const generateAetherResponse = async (
     return callLambda(url, { location: input || 'general urban area', userProfile });
   }
 
-  // SPACE: call vitalscan lambda with context, or return static data
+  // SPACE: call lifeloop lambda with full context
   if (element === ElementType.SPACE) {
-    const url = LAMBDA_URLS.vitalscan;
-    if (url && contextData && Object.keys(contextData).length > 0) {
+    const url = LAMBDA_URLS.lifeloop;
+    if (url) {
       return callLambda(url, {
-        input: `Generate a LifeLoop holistic wellness dashboard summary based on this health context: ${JSON.stringify(contextData)}`,
+        input: input || 'Generate holistic health overview',
         userProfile,
+        contextData: contextData || {},
       });
     }
-    // Static fallback - always English (no Lambda call needed for welcome screen)
+    // Static fallback if lifeloop URL not configured
     return {
       dashboardContext: 'Welcome to LifeLoop. Use the other elements to build your health snapshot.',
       actionableTips: ['Stay hydrated - drink 8 glasses of water today.', 'Take a 10-minute walk.', 'Practice box breathing for 5 minutes.'],
@@ -142,7 +144,7 @@ export const generateAetherResponse = async (
       ],
       safetyAdvice: 'Use VitalScan, TrueMeds, HydroGuard, or ClearScript to get personalized insights.',
       reassuranceLine: 'Your health journey starts with small, consistent steps.',
-      reasoningSummary: 'No prior element data found. Showing general wellness guidance.',
+      reasoningSummary: 'LifeLoop URL not configured. Showing general wellness guidance.',
       emotionalState: 'Calm',
     };
   }

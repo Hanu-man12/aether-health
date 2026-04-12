@@ -167,6 +167,23 @@ const SpaceDashboard: React.FC<SpaceDashboardProps> = ({ results, onAskLifeLoop,
                           {spaceData.dashboardContext || "Your health context is ready."}
                         </h3>
                         <div className="space-y-4">
+                            {/* Routing Suggestion */}
+                            {spaceData.routingSuggestion && (
+                              <div className="bg-violet-500/10 rounded-xl p-4 border border-violet-500/20 flex items-start gap-3">
+                                <div className="w-2 h-2 rounded-full bg-violet-400 mt-1.5 shrink-0 animate-pulse" />
+                                <div>
+                                  <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">Suggested Module</span>
+                                  <p className="text-sm text-gray-200 mt-1">{spaceData.routingSuggestion.reason}</p>
+                                </div>
+                              </div>
+                            )}
+                            {/* Demystified */}
+                            {spaceData.demystified && (
+                              <div className="bg-fuchsia-500/10 rounded-xl p-4 border border-fuchsia-500/20">
+                                <span className="text-[10px] font-bold text-fuchsia-400 uppercase tracking-widest">Demystified</span>
+                                <p className="text-sm text-gray-200 mt-1 leading-relaxed">{spaceData.demystified}</p>
+                              </div>
+                            )}
                             <div className="bg-white/5 rounded-xl p-5 border border-white/5">
                               <h4 className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-3">What you can do today</h4>
                               <ul className="space-y-3">
@@ -187,9 +204,19 @@ const SpaceDashboard: React.FC<SpaceDashboardProps> = ({ results, onAskLifeLoop,
                            <SpaceIcon className="w-8 h-8 text-gray-600" />
                          </div>
                          <h3 className="text-xl font-display font-medium text-white mb-2">Connect Your Elements</h3>
-                         <p className="text-gray-400 max-w-sm mx-auto mb-6">
+                         <p className="text-gray-400 max-w-sm mx-auto mb-4">
                            Run VitalScan, TrueMeds, or other elements to allow LifeLoop to generate personalized health insights for you.
                          </p>
+                         {spaceData.actionableTips && (
+                           <ul className="text-left space-y-2 max-w-sm mx-auto">
+                             {spaceData.actionableTips.map((tip, i) => (
+                               <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
+                                 {tip}
+                               </li>
+                             ))}
+                           </ul>
+                         )}
                       </div>
                    )}
                  </>

@@ -79,6 +79,12 @@ export interface AnalysisResult {
     source: string;
     relevance: string;
   }>;
+  // LifeLoop Supervisor fields
+  routingSuggestion?: {
+    module: 'FIRE' | 'WATER' | 'AIR' | 'EARTH' | 'SPACE';
+    reason: string;
+  };
+  demystified?: string; // Plain-language explanation of medical terms
   
   // Common
   wellnessSuggestions?: string[]; // Legacy, map to tips if needed
