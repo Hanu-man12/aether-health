@@ -221,14 +221,20 @@ const browserTTS = async (text: string, lang: string): Promise<void> => {
 // ─── Polly TTS ────────────────────────────────────────────────────────────────
 let _currentPollyAudio: HTMLAudioElement | null = null;
 
+// Languages Polly can't handle natively — map to fallback language for TTS
+const POLLY_LANG_FALLBACK: Record<string, string> = {
+  bn: 'hi', // Bengali → Hindi voice (Kajal)
+};
+
 const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
   const url = LAMBDA_URLS.polly;
   if (!url) return false;
   try {
+    const pollyLang = POLLY_LANG_FALLBACK[lang] || lang;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, language: lang }),
+      body: JSON.stringify({ text, language: pollyLang }),
     });
     if (!res.ok) return false;
     const data = await res.json();
@@ -251,11 +257,8 @@ const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
 export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
   if (!text) return;
   stopSpeaking();
-  // Bengali: no TTS engine supports Bengali script reliably
-  // Use Polly with English language so user hears the response read aloud
-  const ttsLang = lang === 'bn' ? 'en' : lang;
-  const ok = await pollyTTS(text, ttsLang);
-  if (!ok) await browserTTS(text, ttsLang);
+  const ok = await pollyTTS(text, lang);
+  if (!ok) await browserTTS(text, lang);
 };
 
 export const stopSpeaking = (): void => {
