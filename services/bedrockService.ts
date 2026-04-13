@@ -197,6 +197,9 @@ const browserTTS = async (text: string, lang: string): Promise<void> => {
   window.speechSynthesis.speak(utterance);
 };
 
+// ─── Global audio ref to prevent overlap ─────────────────────────────────────
+let _currentPollyAudio: HTMLAudioElement | null = null;
+
 // ─── Polly TTS — mp3 base64 → HTMLAudioElement ───────────────────────────────
 const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
   const url = LAMBDA_URLS.polly;
@@ -210,7 +213,16 @@ const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
     if (!res.ok) return false;
     const data = await res.json();
     if (!data.audioBase64) return false;
+
+    // Stop previous Polly audio before playing new one
+    if (_currentPollyAudio) {
+      _currentPollyAudio.pause();
+      _currentPollyAudio.currentTime = 0;
+      _currentPollyAudio = null;
+    }
+
     const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+    _currentPollyAudio = audio;
     audio.play();
     return true;
   } catch {
@@ -221,6 +233,7 @@ const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
 // ─── Main speakText — Polly first, browser TTS fallback ──────────────────────
 export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
   if (!text) return;
+  // Stop everything before starting new speech
   stopSpeaking();
   const pollySuccess = await pollyTTS(text, lang);
   if (!pollySuccess) {
@@ -229,7 +242,14 @@ export const speakText = async (text: string, lang: string = 'en'): Promise<void
 };
 
 export const stopSpeaking = (): void => {
+  // Stop browser TTS
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  // Stop Polly audio
+  if (_currentPollyAudio) {
+    _currentPollyAudio.pause();
+    _currentPollyAudio.currentTime = 0;
+    _currentPollyAudio = null;
+  }
 };
 
 export const isSpeaking = (): boolean => {

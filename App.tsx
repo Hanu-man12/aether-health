@@ -135,35 +135,23 @@ const App: React.FC = () => {
     try {
       const routingResult = await routeVoiceIntent(transcript, userProfile);
 
-      // ── MODULE PAGE: smart routing ──────────────────────────────────────────
+      // ── MODULE PAGE: Global mic = NAVIGATION ONLY ───────────────────────────
       if (view === 'MODULE' && currentElement) {
         if (
           routingResult.action === 'NAVIGATE_ELEMENT' &&
           routingResult.targetElement &&
           routingResult.targetElement !== currentElement
         ) {
-          // Navigate to different module — no popup, direct
+          // Different module — navigate directly, no popup, no analyze
           handleElementSelect(routingResult.targetElement);
           return;
         }
-
         if (routingResult.action === 'NAVIGATE_DASHBOARD') {
           handleBack();
           return;
         }
-
-        // Input intent on FIRE (text module) — replace input + auto analyze
-        if (
-          currentElement === ElementType.FIRE &&
-          (routingResult.action === 'EXPLAIN' || routingResult.targetElement === ElementType.FIRE)
-        ) {
-          setInputText(transcript);
-          // Small delay so state updates before handleAction reads it
-          setTimeout(() => handleAction(transcript), 100);
-          return;
-        }
-
-        // For other module pages with no clear nav intent — do nothing silently
+        // Same module or unclear intent on module page — do nothing
+        // Textbox mic handles input+analyze, global mic does NOT
         return;
       }
 
@@ -178,9 +166,6 @@ const App: React.FC = () => {
         setFeedbackMsg(`${t.voice.routed} ${t.elements[routingResult.targetElement].name}`);
         setTimeout(() => setFeedbackMsg(null), 2000);
         handleElementSelect(routingResult.targetElement);
-        if (routingResult.targetElement === ElementType.FIRE) {
-          setInputText(transcript);
-        }
       } else if (routingResult.action === 'EXPLAIN') {
         const explanation = await getBuddyResponse(transcript, userProfile);
         setBuddyResponse(explanation);
