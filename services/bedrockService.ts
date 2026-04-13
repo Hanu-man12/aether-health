@@ -251,8 +251,11 @@ const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
 export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
   if (!text) return;
   stopSpeaking();
-  const ok = await pollyTTS(text, lang);
-  if (!ok) await browserTTS(text, lang);
+  // Bengali: no TTS engine supports Bengali script reliably
+  // Use Polly with English language so user hears the response read aloud
+  const ttsLang = lang === 'bn' ? 'en' : lang;
+  const ok = await pollyTTS(text, ttsLang);
+  if (!ok) await browserTTS(text, ttsLang);
 };
 
 export const stopSpeaking = (): void => {
