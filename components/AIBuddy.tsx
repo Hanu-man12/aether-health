@@ -56,23 +56,24 @@ const AIBuddy: React.FC<AIBuddyProps> = ({
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    // Stop any existing recognition before re-creating
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch {}
     }
 
+    // Map language codes to BCP-47 for speech recognition
+    const LANG_TO_BCP47: Record<string, string> = {
+      en: 'en-US', hi: 'hi-IN', bn: 'bn-BD',
+      es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+      zh: 'zh-CN', ja: 'ja-JP',
+    };
+
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = userProfile.language;
+    recognition.lang = LANG_TO_BCP47[userProfile.language] || 'en-US';
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setLocalMessage(null);
-    };
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+    recognition.onstart = () => { setIsListening(true); setLocalMessage(null); };
+    recognition.onend = () => { setIsListening(false); };
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       onTranscript(transcript);
@@ -89,7 +90,6 @@ const AIBuddy: React.FC<AIBuddyProps> = ({
     };
 
     recognitionRef.current = recognition;
-  // Re-create recognition every time language changes
   }, [userProfile.language, onTranscript, t]);
 
   const toggleListening = () => {

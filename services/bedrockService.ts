@@ -52,9 +52,14 @@ export const routeVoiceIntent = async (
     lower.includes('language') || lower.includes('भाषा') || lower.includes('ভাষা') ||
     lower.includes('switch to') || lower.includes('change to') || lower.includes('set language') ||
     lower.includes('बदलो') || lower.includes('बदलें') || lower.includes('পরিবর্তন') ||
-    lower.includes('mein bolo') || lower.includes('me bolo') || lower.includes('में बोलो');
+    lower.includes('mein bolo') || lower.includes('me bolo') || lower.includes('में बोलो') ||
+    lower.includes('karo') || lower.includes('करो') || lower.includes('set karo') ||
+    lower.includes('switch') || lower.includes('change') || lower.includes('use');
 
-  if (isLangCmd) {
+  // Also detect bare language name as command (e.g. just "hindi" or "bengali")
+  const isBareLanguage = LANG_MAP.some(({ keywords }) => keywords.some(k => lower.trim() === k || lower.trim().startsWith(k + ' ') || lower.trim().endsWith(' ' + k)));
+
+  if (isLangCmd || isBareLanguage) {
     for (const { lang, keywords } of LANG_MAP) {
       if (keywords.some(k => lower.includes(k))) {
         return { action: 'CHANGE_LANGUAGE', targetLanguage: lang, reasoning: `Language change to ${lang}` };
@@ -70,6 +75,7 @@ export const routeVoiceIntent = async (
     lower.includes('बीमार') || lower.includes('दर्द') || lower.includes('बुखार') || lower.includes('लक्षण') ||
     lower.includes('ভাইটাল') || lower.includes('অসুস্থ') || lower.includes('ব্যথা') ||
     lower.includes('জ্বর') || lower.includes('লক্ষণ') ||
+    lower.includes('वाइटल') || lower.includes('वायटल') || lower.includes('वाइटलस्कैन') ||
     lower.includes('fire') || lower.includes('फायर') || lower.includes('ফায়ার')
   ) {
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.FIRE, reasoning: 'VitalScan' };
@@ -80,7 +86,7 @@ export const routeVoiceIntent = async (
     lower.includes('medicine') || lower.includes('pill') || lower.includes('tablet') ||
     lower.includes('packaging') || lower.includes('drug') || lower.includes('meds') ||
     lower.includes('दवा') || lower.includes('गोली') || lower.includes('ट्रूमेड्स') ||
-    lower.includes('ওষুধ') || lower.includes('ট্রুমেডস') ||
+    lower.includes('ट्रू मेड्स') || lower.includes('ওষুধ') || lower.includes('ট্রুমেডস') ||
     lower.includes('earth') || lower.includes('अर्थ') || lower.includes('আর্থ')
   ) {
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.EARTH, reasoning: 'TrueMeds' };
@@ -90,7 +96,7 @@ export const routeVoiceIntent = async (
     lower.includes('hydroguard') || lower.includes('hydro guard') ||
     lower.includes('water') || lower.includes('drink') || lower.includes('quality') ||
     lower.includes('पानी') || lower.includes('हाइड्रोगार्ड') || lower.includes('जल') ||
-    lower.includes('পানি') || lower.includes('জল') || lower.includes('হাইড্রোগার্ড')
+    lower.includes('हाइड्रो') || lower.includes('পানি') || lower.includes('জল') || lower.includes('হাইড্রোগার্ড')
   ) {
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.WATER, reasoning: 'HydroGuard' };
   }
@@ -99,7 +105,7 @@ export const routeVoiceIntent = async (
     lower.includes('clearscript') || lower.includes('clear script') ||
     lower.includes('prescription') || lower.includes('dosage') || lower.includes('receipt') ||
     lower.includes('पर्चा') || lower.includes('नुस्खा') || lower.includes('क्लियरस्क्रिप्ट') ||
-    lower.includes('প্রেসক্রিপশন') || lower.includes('ক্লিয়ারস্ক্রিপ্ট') ||
+    lower.includes('क्लियर स्क्रिप्ट') || lower.includes('প্রেসক্রিপশন') || lower.includes('ক্লিয়ারস্ক্রিপ্ট') ||
     lower.includes('air') || lower.includes('एयर') || lower.includes('এয়ার')
   ) {
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.AIR, reasoning: 'ClearScript' };
@@ -108,7 +114,8 @@ export const routeVoiceIntent = async (
   if (
     lower.includes('lifeloop') || lower.includes('life loop') ||
     lower.includes('space') || lower.includes('wellness') || lower.includes('holistic') ||
-    lower.includes('लाइफलूप') || lower.includes('স্পেস') || lower.includes('লাইফলুপ')
+    lower.includes('लाइफलूप') || lower.includes('लाइफ लूप') ||
+    lower.includes('স্পেস') || lower.includes('লাইফলুপ')
   ) {
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.SPACE, reasoning: 'LifeLoop' };
   }
