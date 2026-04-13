@@ -17,4 +17,5 @@ export const LAMBDA_URLS = {
   truemeds: import.meta.env.VITE_LAMBDA_TRUEMEDS || '',
   hydroguard: import.meta.env.VITE_LAMBDA_HYDROGUARD || '',
   lifeloop: import.meta.env.VITE_LAMBDA_LIFELOOP || '',
+  polly: import.meta.env.VITE_LAMBDA_POLLY || '',
 };

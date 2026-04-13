@@ -9,6 +9,7 @@ import { clearscript } from './functions/clearscript/resource';
 import { truemeds } from './functions/truemeds/resource';
 import { hydroguard } from './functions/hydroguard/resource';
 import { lifeloop } from './functions/lifeloop/resource';
+import { polly } from './functions/polly/resource';
 
 const backend = defineBackend({
   auth,
@@ -19,6 +20,7 @@ const backend = defineBackend({
   truemeds,
   hydroguard,
   lifeloop,
+  polly,
 });
 
 // Grant all Lambda functions access to Bedrock Nova Lite
@@ -35,6 +37,13 @@ backend.clearscript.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.truemeds.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.hydroguard.resources.lambda.addToRolePolicy(bedrockPolicy);
 backend.lifeloop.resources.lambda.addToRolePolicy(bedrockPolicy);
+
+// Grant Polly Lambda access to Amazon Polly
+const pollyPolicy = new PolicyStatement({
+  actions: ['polly:SynthesizeSpeech'],
+  resources: ['*'],
+});
+backend.polly.resources.lambda.addToRolePolicy(pollyPolicy);
 
 // Add Lambda Function URLs (CORS enabled for frontend access)
 const corsConfig = {
@@ -68,6 +77,11 @@ new FunctionUrl(backend.hydroguard.resources.lambda.stack, 'HydroguardUrl', {
 
 new FunctionUrl(backend.lifeloop.resources.lambda.stack, 'LifeloopUrl', {
   function: backend.lifeloop.resources.lambda,
+  ...corsConfig,
+});
+
+new FunctionUrl(backend.polly.resources.lambda.stack, 'PollyUrl', {
+  function: backend.polly.resources.lambda,
   ...corsConfig,
 });
 

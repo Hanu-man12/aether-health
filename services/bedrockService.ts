@@ -14,7 +14,6 @@ let LAMBDA_URLS: Record<string, string> = {};
 export const configureLambdaUrls = (urls: Record<string, string>) => {
   LAMBDA_URLS = urls;
 };
-
 const callLambda = async (url: string, body: object): Promise<any> => {
   const res = await fetch(url, {
     method: 'POST',
@@ -167,43 +166,66 @@ const getAvailableVoices = (): Promise<SpeechSynthesisVoice[]> => {
     if (voices.length > 0) {
       resolve(voices);
     } else {
-      // Voices load async on first call
       window.speechSynthesis.onvoiceschanged = () => {
         resolve(window.speechSynthesis.getVoices());
       };
-      // Timeout fallback — 500ms
       setTimeout(() => resolve(window.speechSynthesis.getVoices()), 500);
     }
   });
 };
 
-export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
+const browserTTS = async (text: string, lang: string): Promise<void> => {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
-
   const utterance = new SpeechSynthesisUtterance(text);
   const targetLang = LANG_TO_BCP47[lang] || 'en-US';
-  const langPrefix = targetLang.split('-')[0]; // e.g. 'bn', 'hi', 'zh'
-
+  const langPrefix = targetLang.split('-')[0];
   const voices = await getAvailableVoices();
   const hasVoice = voices.some(v => v.lang.startsWith(langPrefix));
-
   if (!hasVoice && FALLBACK_TO_EN.has(lang)) {
-    // No voice found for this language — use English so user hears something
     utterance.lang = 'en-US';
     const enVoice = voices.find(v => v.lang.startsWith('en'));
     if (enVoice) utterance.voice = enVoice;
   } else {
     utterance.lang = targetLang;
-    // Pick best matching voice if available
     const match = voices.find(v => v.lang === targetLang) || voices.find(v => v.lang.startsWith(langPrefix));
     if (match) utterance.voice = match;
   }
-
   utterance.rate = 0.95;
   utterance.pitch = 1;
   utterance.volume = 1;
   window.speechSynthesis.speak(utterance);
+};
+
+// ─── Polly TTS — mp3 base64 → HTMLAudioElement ───────────────────────────────
+const pollyTTS = async (text: string, lang: string): Promise<boolean> => {
+  const url = LAMBDA_URLS.polly;
+  if (!url) return false;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, language: lang }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data.audioBase64) return false;
+    const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+    audio.play();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// ─── Main speakText — Polly first, browser TTS fallback ──────────────────────
+export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
+  if (!text) return;
+  stopSpeaking();
+  const pollySuccess = await pollyTTS(text, lang);
+  if (!pollySuccess) {
+    await browserTTS(text, lang);
+  }
 };
 
 export const stopSpeaking = (): void => {
