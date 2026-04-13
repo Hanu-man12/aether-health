@@ -113,25 +113,28 @@ export const routeVoiceIntent = async (
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.SPACE, reasoning: 'LifeLoop' };
   }
 
-  // ── 3. Dashboard / back / sanctuary ──────────────────────────────────────────
+  // ── 3. Dashboard / Sanctuary page ("The Sanctuary" orbital UI) ──────────────
   if (
-    lower.includes('back') || lower.includes('home') || lower.includes('dashboard') ||
-    lower.includes('menu') || lower.includes('वापस') || lower.includes('होम') ||
-    lower.includes('ফিরে') || lower.includes('হোম') ||
-    lower.includes('main page') || lower.includes('main home') ||
-    lower.includes('मुख्य पेज') || lower.includes('মূল পেজ')
+    lower.includes('sanctuary') || lower.includes('dashboard') ||
+    lower.includes('the sanctuary') || lower.includes('system synthesis') ||
+    lower.includes('सैंक्चुअरी') || lower.includes('স্যাংচুয়ারি')
   ) {
-    return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Navigation' };
+    return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Sanctuary/Dashboard' };
   }
 
-  // Sanctuary / Initialize Sequence page (LANDING)
+  // Landing / Home page ("Harmonizing Global Health" with Initialize Sequence button)
   if (
-    lower.includes('sanctuary') || lower.includes('initialize') ||
-    lower.includes('initialize sequence') || lower.includes('landing') ||
-    lower.includes('start page') || lower.includes('सैंक्चुअरी') ||
-    lower.includes('স্যাংচুয়ারি') || lower.includes('शुरुआत')
+    lower.includes('home') || lower.includes('home page') || lower.includes('main page') ||
+    lower.includes('main home') || lower.includes('landing') ||
+    lower.includes('initialize sequence') || lower.includes('initialize') ||
+    lower.includes('start page') || lower.includes('back to home') ||
+    lower.includes('harmonizing') || lower.includes('global health page') ||
+    lower.includes('होम') || lower.includes('मुख्य पेज') || lower.includes('शुरुआत') ||
+    lower.includes('হোম') || lower.includes('মূল পেজ') ||
+    lower.includes('back') || lower.includes('वापस') || lower.includes('ফিরে') ||
+    lower.includes('menu')
   ) {
-    return { action: 'NAVIGATE_LANDING', reasoning: 'Sanctuary/Landing page' };
+    return { action: 'NAVIGATE_LANDING', reasoning: 'Home/Landing page' };
   }
 
   // ── 4. Help / explain ─────────────────────────────────────────────────────────
