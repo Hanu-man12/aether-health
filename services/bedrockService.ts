@@ -125,7 +125,8 @@ export const routeVoiceIntent = async (
     lower.includes('sanctuary') || lower.includes('dashboard') ||
     lower.includes('the sanctuary') || lower.includes('system synthesis') ||
     lower.includes('initialize sequence') || lower.includes('initialize') ||
-    lower.includes('सैंक्चुअरी') || lower.includes('স্যাংচুয়ারি')
+    lower.includes('इनिशियलाइज') || lower.includes('सैंक्चुअरी') ||
+    lower.includes('ইনিশিয়ালাইজ') || lower.includes('স্যাংচুয়ারি')
   ) {
     return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Sanctuary/Dashboard' };
   }

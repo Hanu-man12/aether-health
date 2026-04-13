@@ -60,17 +60,12 @@ const AIBuddy: React.FC<AIBuddyProps> = ({
       try { recognitionRef.current.abort(); } catch {}
     }
 
-    // Map language codes to BCP-47 for speech recognition
-    const LANG_TO_BCP47: Record<string, string> = {
-      en: 'en-US', hi: 'hi-IN', bn: 'bn-BD',
-      es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
-      zh: 'zh-CN', ja: 'ja-JP',
-    };
-
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = LANG_TO_BCP47[userProfile.language] || 'en-US';
+    // Always use en-US for recognition so module names + commands are in English
+    // TTS handles output in user's language separately
+    recognition.lang = 'en-US';
 
     recognition.onstart = () => { setIsListening(true); setLocalMessage(null); };
     recognition.onend = () => { setIsListening(false); };
