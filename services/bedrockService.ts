@@ -113,13 +113,25 @@ export const routeVoiceIntent = async (
     return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.SPACE, reasoning: 'LifeLoop' };
   }
 
-  // ── 3. Dashboard / back ───────────────────────────────────────────────────────
+  // ── 3. Dashboard / back / sanctuary ──────────────────────────────────────────
   if (
     lower.includes('back') || lower.includes('home') || lower.includes('dashboard') ||
     lower.includes('menu') || lower.includes('वापस') || lower.includes('होम') ||
-    lower.includes('ফিরে') || lower.includes('হোম')
+    lower.includes('ফিরে') || lower.includes('হোম') ||
+    lower.includes('main page') || lower.includes('main home') ||
+    lower.includes('मुख्य पेज') || lower.includes('মূল পেজ')
   ) {
     return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Navigation' };
+  }
+
+  // Sanctuary / Initialize Sequence page (LANDING)
+  if (
+    lower.includes('sanctuary') || lower.includes('initialize') ||
+    lower.includes('initialize sequence') || lower.includes('landing') ||
+    lower.includes('start page') || lower.includes('सैंक्चुअरी') ||
+    lower.includes('স্যাংচুয়ারি') || lower.includes('शुरुआत')
+  ) {
+    return { action: 'NAVIGATE_LANDING', reasoning: 'Sanctuary/Landing page' };
   }
 
   // ── 4. Help / explain ─────────────────────────────────────────────────────────
@@ -150,7 +162,8 @@ export const getBuddyResponse = async (
     return "ClearScript (Air) decodes handwritten prescriptions and expands medical abbreviations.";
   if (lower.includes('lifeloop') || lower.includes('space') || lower.includes('wellness'))
     return "LifeLoop (Space) is your holistic health dashboard, synthesizing insights from all modules.";
-  return "I'm Aetheria, your Aether Health guide. Ask me about any of the 5 elements: Fire, Water, Air, Earth, or Space.";
+  // Default — explain global mic purpose
+  return "Use voice to navigate pages, change language anytime, or control the app. For analysis or input, use the page-specific tools.";
 };
 
 // ─── Language code map for Web Speech API ────────────────────────────────────

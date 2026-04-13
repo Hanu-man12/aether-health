@@ -51,44 +51,45 @@ const AIBuddy: React.FC<AIBuddyProps> = ({
     }
   }, [feedbackMsg]);
 
-  // Setup Speech Recognition
+  // Setup Speech Recognition — re-init on language change
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = userProfile.language;
+    if (!SpeechRecognition) return;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        // Only set message if not just "listening" generic prompt, or keep it null to rely on visuals
-        setLocalMessage(null); 
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        onTranscript(transcript);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech error", event.error);
-        setIsListening(false);
-        if (event.error === 'not-allowed') {
-           setLocalMessage(t.voice.permissionError || "Microphone access denied.");
-        } else {
-           setLocalMessage(t.voice.error);
-        }
-        setTimeout(() => setLocalMessage(null), 3000);
-      };
-
-      recognitionRef.current = recognition;
+    // Stop any existing recognition before re-creating
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = userProfile.language;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setLocalMessage(null);
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      onTranscript(transcript);
+    };
+    recognition.onerror = (event: any) => {
+      console.error("Speech error", event.error);
+      setIsListening(false);
+      if (event.error === 'not-allowed') {
+        setLocalMessage(t.voice.permissionError || "Microphone access denied.");
+      } else {
+        setLocalMessage(t.voice.error);
+      }
+      setTimeout(() => setLocalMessage(null), 3000);
+    };
+
+    recognitionRef.current = recognition;
+  // Re-create recognition every time language changes
   }, [userProfile.language, onTranscript, t]);
 
   const toggleListening = () => {

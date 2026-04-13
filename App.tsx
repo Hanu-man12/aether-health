@@ -143,6 +143,10 @@ const App: React.FC = () => {
           stopAudio();
           return;
         }
+        if (routingResult.action === 'NAVIGATE_LANDING') {
+          setView('LANDING'); setCurrentElement(null); stopAudio();
+          return;
+        }
         if (
           routingResult.action === 'NAVIGATE_ELEMENT' &&
           routingResult.targetElement &&
@@ -162,7 +166,10 @@ const App: React.FC = () => {
       // ── DASHBOARD / LANDING PAGE: full routing ──────────────────────────────
       setFeedbackMsg(t.voice.processing);
 
-      if (routingResult.action === 'NAVIGATE_DASHBOARD') {
+      if (routingResult.action === 'NAVIGATE_LANDING') {
+        setView('LANDING'); stopAudio();
+        setTimeout(() => setFeedbackMsg(null), 1000);
+      } else if (routingResult.action === 'NAVIGATE_DASHBOARD') {
         setFeedbackMsg("Navigating to Dashboard...");
         setTimeout(() => setFeedbackMsg(null), 2000);
         handleBack();
