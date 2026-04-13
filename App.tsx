@@ -135,14 +135,19 @@ const App: React.FC = () => {
     try {
       const routingResult = await routeVoiceIntent(transcript, userProfile);
 
-      // ── MODULE PAGE: Global mic = NAVIGATION ONLY ───────────────────────────
+      // ── MODULE PAGE: Global mic = NAVIGATION + LANGUAGE CHANGE ONLY ───────────
       if (view === 'MODULE' && currentElement) {
+        if (routingResult.action === 'CHANGE_LANGUAGE' && routingResult.targetLanguage) {
+          const newProfile = { ...userProfile, language: routingResult.targetLanguage };
+          handleUpdateProfile(newProfile);
+          stopAudio();
+          return;
+        }
         if (
           routingResult.action === 'NAVIGATE_ELEMENT' &&
           routingResult.targetElement &&
           routingResult.targetElement !== currentElement
         ) {
-          // Different module — navigate directly, no popup, no analyze
           handleElementSelect(routingResult.targetElement);
           return;
         }
@@ -150,8 +155,7 @@ const App: React.FC = () => {
           handleBack();
           return;
         }
-        // Same module or unclear intent on module page — do nothing
-        // Textbox mic handles input+analyze, global mic does NOT
+        // Anything else on module page — ignore silently
         return;
       }
 
@@ -162,6 +166,10 @@ const App: React.FC = () => {
         setFeedbackMsg("Navigating to Dashboard...");
         setTimeout(() => setFeedbackMsg(null), 2000);
         handleBack();
+      } else if (routingResult.action === 'CHANGE_LANGUAGE' && routingResult.targetLanguage) {
+        const newProfile = { ...userProfile, language: routingResult.targetLanguage };
+        handleUpdateProfile(newProfile);
+        stopAudio();
       } else if (routingResult.action === 'NAVIGATE_ELEMENT' && routingResult.targetElement) {
         setFeedbackMsg(`${t.voice.routed} ${t.elements[routingResult.targetElement].name}`);
         setTimeout(() => setFeedbackMsg(null), 2000);

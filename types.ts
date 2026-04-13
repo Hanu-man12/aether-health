@@ -95,8 +95,9 @@ export interface AnalysisResult {
 }
 
 export interface IntentResult {
-  action: 'NAVIGATE_ELEMENT' | 'NAVIGATE_DASHBOARD' | 'EXPLAIN';
+  action: 'NAVIGATE_ELEMENT' | 'NAVIGATE_DASHBOARD' | 'EXPLAIN' | 'CHANGE_LANGUAGE';
   targetElement?: ElementType;
+  targetLanguage?: Language;
   reasoning: string;
 }
 
