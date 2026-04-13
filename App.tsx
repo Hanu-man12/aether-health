@@ -22,13 +22,12 @@ const App: React.FC = () => {
   const [currentElement, setCurrentElement] = useState<ElementType | null>(null);
   
   // Logo State
-  const [logoSrc, setLogoSrc] = useState<string>('/logo.png');
+  const [logoSrc, setLogoSrc] = useState<string>('/logo.jpeg');
 
   // Generate Logo on Mount
   useEffect(() => {
-    // Always use the static logo file — clear any old cached SVG
     sessionStorage.removeItem('aether_logo');
-    setLogoSrc('/logo.png');
+    setLogoSrc('/logo.jpeg');
   }, []);
 
   // User Profile State
