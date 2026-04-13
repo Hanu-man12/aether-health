@@ -33,33 +33,92 @@ export const generateAppLogo = async (): Promise<string | undefined> => {
   return FALLBACK_LOGO;
 };
 
-// ─── Voice Intent Routing (Bedrock via Lambda or local fallback) ──────────────
+// ─── Voice Intent Routing ─────────────────────────────────────────────────────
 export const routeVoiceIntent = async (
   text: string,
   userProfile: UserProfile
 ): Promise<IntentResult> => {
-  // Simple keyword-based routing as fallback when Lambda URL not set
-  // Replace with a dedicated Lambda if needed
   const lower = text.toLowerCase();
-  if (lower.includes('symptom') || lower.includes('pain') || lower.includes('sick') || lower.includes('fever')) {
-    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.FIRE, reasoning: 'Symptom keywords detected' };
+
+  // ── Module name direct matches (all languages) ──
+  // VitalScan / Fire
+  if (
+    lower.includes('vitalscan') || lower.includes('vital scan') ||
+    lower.includes('vital') ||
+    lower.includes('symptom') || lower.includes('symptoms') ||
+    lower.includes('pain') || lower.includes('sick') || lower.includes('fever') ||
+    lower.includes('बीमार') || lower.includes('दर्द') || lower.includes('बुखार') ||
+    lower.includes('लक्षण') || lower.includes('vitalscan') ||
+    lower.includes('ভাইটাল') || lower.includes('অসুস্থ') || lower.includes('ব্যথা') ||
+    lower.includes('জ্বর') || lower.includes('লক্ষণ') ||
+    lower.includes('fire') || lower.includes('फायर') || lower.includes('ফায়ার')
+  ) {
+    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.FIRE, reasoning: 'VitalScan keywords detected' };
   }
-  if (lower.includes('medicine') || lower.includes('pill') || lower.includes('tablet') || lower.includes('packaging')) {
-    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.EARTH, reasoning: 'Medicine keywords detected' };
+
+  // TrueMeds / Earth
+  if (
+    lower.includes('truemeds') || lower.includes('true meds') ||
+    lower.includes('medicine') || lower.includes('pill') || lower.includes('tablet') ||
+    lower.includes('packaging') || lower.includes('drug') || lower.includes('meds') ||
+    lower.includes('दवा') || lower.includes('गोली') || lower.includes('ट्रूमेड्स') ||
+    lower.includes('ওষুধ') || lower.includes('ট্রুমেডস') ||
+    lower.includes('earth') || lower.includes('अर्थ') || lower.includes('আর্থ')
+  ) {
+    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.EARTH, reasoning: 'TrueMeds keywords detected' };
   }
-  if (lower.includes('water') || lower.includes('drink') || lower.includes('quality')) {
-    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.WATER, reasoning: 'Water keywords detected' };
+
+  // HydroGuard / Water
+  if (
+    lower.includes('hydroguard') || lower.includes('hydro guard') ||
+    lower.includes('water') || lower.includes('drink') || lower.includes('quality') ||
+    lower.includes('पानी') || lower.includes('हाइड्रोगार्ड') || lower.includes('जल') ||
+    lower.includes('পানি') || lower.includes('জল') || lower.includes('হাইড্রোগার্ড')
+  ) {
+    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.WATER, reasoning: 'HydroGuard keywords detected' };
   }
-  if (lower.includes('prescription') || lower.includes('doctor') || lower.includes('script') || lower.includes('dosage')) {
-    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.AIR, reasoning: 'Prescription keywords detected' };
+
+  // ClearScript / Air
+  if (
+    lower.includes('clearscript') || lower.includes('clear script') ||
+    lower.includes('prescription') || lower.includes('doctor') ||
+    lower.includes('script') || lower.includes('dosage') || lower.includes('receipt') ||
+    lower.includes('पर्चा') || lower.includes('नुस्खा') || lower.includes('क्लियरस्क्रिप्ट') ||
+    lower.includes('প্রেসক্রিপশন') || lower.includes('ক্লিয়ারস্ক্রিপ্ট') ||
+    lower.includes('air') || lower.includes('एयर') || lower.includes('এয়ার')
+  ) {
+    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.AIR, reasoning: 'ClearScript keywords detected' };
   }
-  if (lower.includes('back') || lower.includes('home') || lower.includes('dashboard') || lower.includes('menu')) {
+
+  // LifeLoop / Space — explicit only
+  if (
+    lower.includes('lifeloop') || lower.includes('life loop') ||
+    lower.includes('space') || lower.includes('wellness') || lower.includes('holistic') ||
+    lower.includes('लाइफलूप') || lower.includes('স্পেস') || lower.includes('লাইফলুপ')
+  ) {
+    return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.SPACE, reasoning: 'LifeLoop keywords detected' };
+  }
+
+  // Navigation — back/home
+  if (
+    lower.includes('back') || lower.includes('home') || lower.includes('dashboard') ||
+    lower.includes('menu') || lower.includes('वापस') || lower.includes('होम') ||
+    lower.includes('ফিরে') || lower.includes('হোম')
+  ) {
     return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Navigation keywords detected' };
   }
-  if (lower.includes('help') || lower.includes('what') || lower.includes('how') || lower.includes('explain')) {
+
+  // Help / explain
+  if (
+    lower.includes('help') || lower.includes('what') || lower.includes('how') ||
+    lower.includes('explain') || lower.includes('क्या') || lower.includes('कैसे') ||
+    lower.includes('কী') || lower.includes('কিভাবে')
+  ) {
     return { action: 'EXPLAIN', reasoning: 'Help request detected' };
   }
-  return { action: 'NAVIGATE_ELEMENT', targetElement: ElementType.SPACE, reasoning: 'Default to LifeLoop' };
+
+  // Default: EXPLAIN instead of blindly going to LifeLoop
+  return { action: 'EXPLAIN', reasoning: 'No clear intent detected' };
 };
 
 // ─── AI Buddy Response ────────────────────────────────────────────────────────
@@ -90,7 +149,7 @@ export const getBuddyResponse = async (
 const LANG_TO_BCP47: Record<string, string> = {
   en: 'en-US',
   hi: 'hi-IN',
-  bn: 'bn-IN',
+  bn: 'bn-BD', // bn-BD has better browser support than bn-IN
   es: 'es-ES',
   fr: 'fr-FR',
   de: 'de-DE',
@@ -98,12 +157,49 @@ const LANG_TO_BCP47: Record<string, string> = {
   ja: 'ja-JP',
 };
 
+// Languages where browser TTS voice availability is unreliable — fallback to en-US
+const FALLBACK_TO_EN = new Set(['bn']);
+
 // ─── TTS via Web Speech API (browser-native, no Lambda needed) ───────────────
-export const speakText = (text: string, lang: string = 'en'): void => {
+const getAvailableVoices = (): Promise<SpeechSynthesisVoice[]> => {
+  return new Promise(resolve => {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      resolve(voices);
+    } else {
+      // Voices load async on first call
+      window.speechSynthesis.onvoiceschanged = () => {
+        resolve(window.speechSynthesis.getVoices());
+      };
+      // Timeout fallback — 500ms
+      setTimeout(() => resolve(window.speechSynthesis.getVoices()), 500);
+    }
+  });
+};
+
+export const speakText = async (text: string, lang: string = 'en'): Promise<void> => {
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel(); // stop any ongoing speech
+  window.speechSynthesis.cancel();
+
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = LANG_TO_BCP47[lang] || 'en-US';
+  const targetLang = LANG_TO_BCP47[lang] || 'en-US';
+  const langPrefix = targetLang.split('-')[0]; // e.g. 'bn', 'hi', 'zh'
+
+  const voices = await getAvailableVoices();
+  const hasVoice = voices.some(v => v.lang.startsWith(langPrefix));
+
+  if (!hasVoice && FALLBACK_TO_EN.has(lang)) {
+    // No voice found for this language — use English so user hears something
+    utterance.lang = 'en-US';
+    const enVoice = voices.find(v => v.lang.startsWith('en'));
+    if (enVoice) utterance.voice = enVoice;
+  } else {
+    utterance.lang = targetLang;
+    // Pick best matching voice if available
+    const match = voices.find(v => v.lang === targetLang) || voices.find(v => v.lang.startsWith(langPrefix));
+    if (match) utterance.voice = match;
+  }
+
   utterance.rate = 0.95;
   utterance.pitch = 1;
   utterance.volume = 1;

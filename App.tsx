@@ -167,16 +167,16 @@ const App: React.FC = () => {
   const playTTS = (text: string) => {
     if (!text) return;
     stopSpeaking();
-    speakText(text, userProfile.language);
-    setIsPlaying(true);
-    // Poll speechSynthesis.speaking to detect when done
-    if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
-    ttsCheckRef.current = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        setIsPlaying(false);
-        if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
-      }
-    }, 300);
+    speakText(text, userProfile.language).then(() => {
+      setIsPlaying(true);
+      if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
+      ttsCheckRef.current = setInterval(() => {
+        if (!window.speechSynthesis.speaking) {
+          setIsPlaying(false);
+          if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
+        }
+      }, 300);
+    });
   };
 
   const stopAudio = () => {
