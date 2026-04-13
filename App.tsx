@@ -337,6 +337,7 @@ const App: React.FC = () => {
                 <img 
                   src={logoSrc} 
                   alt={t.appTitle}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   className="h-full w-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
                 />
              </div>

@@ -132,7 +132,7 @@ const DashboardSphere: React.FC<SanctuaryHomeProps> = ({ onSelect, userProfile, 
               {/* Main Sphere */}
               <div className="absolute inset-8 rounded-full bg-white/5 backdrop-blur-3xl border border-white/10 shadow-[inset_0_0_60px_rgba(255,255,255,0.05)] group-hover:shadow-[0_0_100px_rgba(139,92,246,0.3)] transition-all duration-700 animate-breathe-slow flex items-center justify-center overflow-hidden">
                  <div className="absolute inset-0 bg-gradient-radial from-violet-500/10 to-transparent opacity-50"></div>
-                 <img src={logoSrc} alt="System Core" className="w-32 h-32 object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
+                 <img src={logoSrc} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} className="w-32 h-32 object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
               </div>
 
               {/* Label */}
@@ -209,7 +209,7 @@ const DashboardSphere: React.FC<SanctuaryHomeProps> = ({ onSelect, userProfile, 
            className="w-full p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center gap-6 active:scale-95 transition-transform"
          >
             <div className="w-16 h-16 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
-               <img src={logoSrc} className="w-10 h-10 object-contain opacity-80" alt="Core" />
+               <img src={logoSrc} className="w-10 h-10 object-contain opacity-80" alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
             <div>
                <h3 className="text-xl font-serif text-white">System Synthesis</h3>
