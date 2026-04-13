@@ -117,16 +117,16 @@ export const routeVoiceIntent = async (
   if (
     lower.includes('sanctuary') || lower.includes('dashboard') ||
     lower.includes('the sanctuary') || lower.includes('system synthesis') ||
+    lower.includes('initialize sequence') || lower.includes('initialize') ||
     lower.includes('सैंक्चुअरी') || lower.includes('স্যাংচুয়ারি')
   ) {
     return { action: 'NAVIGATE_DASHBOARD', reasoning: 'Sanctuary/Dashboard' };
   }
 
-  // Landing / Home page ("Harmonizing Global Health" with Initialize Sequence button)
+  // Landing / Home page ("Harmonizing Global Health" page)
   if (
     lower.includes('home') || lower.includes('home page') || lower.includes('main page') ||
     lower.includes('main home') || lower.includes('landing') ||
-    lower.includes('initialize sequence') || lower.includes('initialize') ||
     lower.includes('start page') || lower.includes('back to home') ||
     lower.includes('harmonizing') || lower.includes('global health page') ||
     lower.includes('होम') || lower.includes('मुख्य पेज') || lower.includes('शुरुआत') ||
