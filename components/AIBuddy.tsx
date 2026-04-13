@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
+import { stopSpeaking } from '../services/bedrockService';
 
 interface AIBuddyProps {
   onTranscript: (text: string) => void;
@@ -95,7 +96,11 @@ const AIBuddy: React.FC<AIBuddyProps> = ({
       setLocalMessage("Voice not supported");
       return;
     }
-
+    // If currently speaking, stop TTS first
+    if (buddyState === 'speaking') {
+      stopSpeaking();
+      return;
+    }
     if (isListening) {
       recognitionRef.current.stop();
     } else {

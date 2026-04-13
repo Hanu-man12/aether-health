@@ -86,13 +86,43 @@ export const getBuddyResponse = async (
   return "I'm Aetheria, your Aether Health guide. Ask me about any of the 5 elements: Fire, Water, Air, Earth, or Space.";
 };
 
-// ─── Voice Audio (TTS disabled - Gemini TTS not available in Bedrock) ─────────
+// ─── Language code map for Web Speech API ────────────────────────────────────
+const LANG_TO_BCP47: Record<string, string> = {
+  en: 'en-US',
+  hi: 'hi-IN',
+  bn: 'bn-IN',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  zh: 'zh-CN',
+  ja: 'ja-JP',
+};
+
+// ─── TTS via Web Speech API (browser-native, no Lambda needed) ───────────────
+export const speakText = (text: string, lang: string = 'en'): void => {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel(); // stop any ongoing speech
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = LANG_TO_BCP47[lang] || 'en-US';
+  utterance.rate = 0.95;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  window.speechSynthesis.speak(utterance);
+};
+
+export const stopSpeaking = (): void => {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+};
+
+export const isSpeaking = (): boolean => {
+  return 'speechSynthesis' in window && window.speechSynthesis.speaking;
+};
+
+// ─── Legacy stub — kept for backward compat, no longer used for audio ────────
 export const generateVoiceAudio = async (
   _text: string,
   _element: ElementType
 ): Promise<string | undefined> => {
-  // TTS via Bedrock not available with Nova Lite.
-  // Can integrate Amazon Polly here in a future phase.
   return undefined;
 };
 

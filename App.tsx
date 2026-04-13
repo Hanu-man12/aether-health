@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ElementType, AnalysisResult, UserProfile, HealthStatus } from './types';
 import { ELEMENTS } from './constants';
 import { TRANSLATIONS } from './translations';
-import { generateAetherResponse, routeVoiceIntent, generateVoiceAudio, getBuddyResponse, generateAppLogo } from './services/bedrockService';
+import { generateAetherResponse, routeVoiceIntent, generateVoiceAudio, getBuddyResponse, generateAppLogo, speakText, stopSpeaking } from './services/bedrockService';
 import SanctuaryHome from './components/DashboardSphere'; // Renamed conceptually
 import OutputDisplay from './components/OutputDisplay';
 import TrustPanel from './components/TrustPanel';
@@ -16,17 +16,6 @@ import TrueMedsModule from './components/TrueMedsModule'; // New Module
 import AIBuddy from './components/AIBuddy';
 
 type ViewState = 'LANDING' | 'DASHBOARD' | 'MODULE';
-
-// Audio Decode Helper
-function decode(base64: string) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('LANDING');
@@ -87,11 +76,9 @@ const App: React.FC = () => {
   // Global Voice State
   const [isRoutingVoice, setIsRoutingVoice] = useState(false);
   
-  // TTS State
-  const [audioBase64, setAudioBase64] = useState<string | null>(null);
+  // TTS State (Web Speech API)
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const ttsCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Translation Helper
   const t = TRANSLATIONS[userProfile.language];
@@ -103,21 +90,17 @@ const App: React.FC = () => {
   const handleElementSelect = (el: ElementType) => {
     setCurrentElement(el);
     setView('MODULE');
-    
-    // Clear transient inputs
     setInputText('');
     setSelectedImage(null);
     setError(null);
     stopAudio();
-    setAudioBase64(null);
-    setBuddyResponse(null); // Clear buddy chat on nav
+    setBuddyResponse(null);
   };
 
   const handleBack = () => {
     setView('DASHBOARD');
     setCurrentElement(null);
     stopAudio();
-    setAudioBase64(null);
     setBuddyResponse(null);
   };
 
@@ -165,13 +148,8 @@ const App: React.FC = () => {
       } else if (routingResult.action === 'EXPLAIN') {
          const explanation = await getBuddyResponse(transcript, userProfile);
          setBuddyResponse(explanation);
-         
-         if (userProfile.voiceResponse) {
-             const audio = await generateVoiceAudio(explanation, ElementType.SPACE); 
-             if (audio) {
-                 setAudioBase64(audio);
-                 playAudio(audio);
-             }
+         if (userProfile.voiceResponse && explanation) {
+           playTTS(explanation);
          }
       } else {
          setFeedbackMsg("I didn't quite get that command.");
@@ -186,40 +164,25 @@ const App: React.FC = () => {
     }
   };
 
-  const playAudio = async (base64: string) => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+  const playTTS = (text: string) => {
+    if (!text) return;
+    stopSpeaking();
+    speakText(text, userProfile.language);
+    setIsPlaying(true);
+    // Poll speechSynthesis.speaking to detect when done
+    if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
+    ttsCheckRef.current = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        setIsPlaying(false);
+        if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
       }
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-      const bytes = decode(base64);
-      const buffer = audioContextRef.current.createBuffer(1, bytes.length / 2, 24000);
-      const channelData = buffer.getChannelData(0);
-      const dataInt16 = new Int16Array(bytes.buffer);
-      for (let i = 0; i < dataInt16.length; i++) {
-        channelData[i] = dataInt16[i] / 32768.0;
-      }
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContextRef.current.destination);
-      source.onended = () => setIsPlaying(false);
-      sourceRef.current = source;
-      source.start();
-      setIsPlaying(true);
-    } catch (e) {
-      console.error("Audio playback error", e);
-      setIsPlaying(false);
-    }
+    }, 300);
   };
 
   const stopAudio = () => {
-    if (sourceRef.current) {
-      sourceRef.current.stop();
-      sourceRef.current = null;
-    }
+    stopSpeaking();
     setIsPlaying(false);
+    if (ttsCheckRef.current) clearInterval(ttsCheckRef.current);
   };
 
   const handleClear = () => {
@@ -227,7 +190,6 @@ const App: React.FC = () => {
     setSelectedImage(null);
     setError(null);
     stopAudio();
-    setAudioBase64(null);
     if (currentElement) {
        setResults(prev => ({
          ...prev,
@@ -246,7 +208,6 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     stopAudio();
-    setAudioBase64(null);
     setBuddyResponse(null);
 
     const inputToUse = safeOverrideInput || inputText;
@@ -277,23 +238,13 @@ const App: React.FC = () => {
       }));
 
       if (userProfile.voiceResponse) {
-        // Safe access to properties and ensure string
-        let textToSpeak = response.reassuranceLine || "";
-        if (response.safetyAdvice) textToSpeak += ". " + response.safetyAdvice;
-        if (response.whatThisMeans) textToSpeak = response.whatThisMeans + ". " + textToSpeak;
-        
-        // Truncate to avoid issues and ensure we have a string to check length on
-        if (textToSpeak && textToSpeak.length > 300) {
-          textToSpeak = textToSpeak.substring(0, 300) + "...";
-        }
-
-        if (textToSpeak) {
-          const audio = await generateVoiceAudio(textToSpeak, currentElement);
-          if (audio) {
-            setAudioBase64(audio);
-            playAudio(audio);
-          }
-        }
+        // Build text to speak from response
+        let textToSpeak = '';
+        if (response.whatThisMeans) textToSpeak = response.whatThisMeans + '. ';
+        if (response.reassuranceLine) textToSpeak += response.reassuranceLine;
+        if (response.safetyAdvice) textToSpeak += '. ' + response.safetyAdvice;
+        if (textToSpeak.length > 400) textToSpeak = textToSpeak.substring(0, 400) + '...';
+        if (textToSpeak.trim()) playTTS(textToSpeak);
       }
     } catch (err) {
       setError("Aether could not complete the analysis. Please try again.");
@@ -308,12 +259,25 @@ const App: React.FC = () => {
 
   if (view === 'LANDING') {
     return (
-      <LandingPage 
-        onEnter={() => setView('DASHBOARD')} 
-        onLaunchElement={handleElementSelect}
-        t={t}
-        logoSrc={logoSrc}
-      />
+      <>
+        <LandingPage 
+          onEnter={() => setView('DASHBOARD')} 
+          onLaunchElement={handleElementSelect}
+          t={t}
+          logoSrc={logoSrc}
+        />
+        {/* Global mic on landing too */}
+        <AIBuddy
+          onTranscript={handleGlobalVoiceInput}
+          userProfile={userProfile}
+          t={t}
+          feedbackMsg={feedbackMsg}
+          loading={isRoutingVoice}
+          isPlayingAudio={isPlaying}
+          buddyResponse={buddyResponse}
+          onClearResponse={() => setBuddyResponse(null)}
+        />
+      </>
     );
   }
 
@@ -457,18 +421,11 @@ const App: React.FC = () => {
                       {currentLoc.name}
                     </h2>
                     
-                    {audioBase64 && (
+                    {isPlaying && (
                       <div className="ml-auto flex items-center gap-2">
-                         {isPlaying ? (
-                           <button onClick={stopAudio} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-red-500/30 transition-colors">
-                             <span className="animate-pulse">●</span> {t.voice.mute}
-                           </button>
-                         ) : (
-                           <button onClick={() => playAudio(audioBase64)} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-emerald-500/30 transition-colors">
-                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                             {t.voice.replay}
-                           </button>
-                         )}
+                         <button onClick={stopAudio} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-red-500/30 transition-colors">
+                           <span className="animate-pulse">●</span> {t.voice.mute}
+                         </button>
                       </div>
                     )}
                   </div>
