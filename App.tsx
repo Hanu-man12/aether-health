@@ -22,27 +22,13 @@ const App: React.FC = () => {
   const [currentElement, setCurrentElement] = useState<ElementType | null>(null);
   
   // Logo State
-  const [logoSrc, setLogoSrc] = useState<string>('/app-logo.png');
+  const [logoSrc, setLogoSrc] = useState<string>('/logo.png');
 
   // Generate Logo on Mount
   useEffect(() => {
-    const fetchLogo = async () => {
-      // Check session storage to avoid regenerating on every reload
-      const cached = sessionStorage.getItem('aether_logo');
-      if (cached) {
-        setLogoSrc(cached);
-        return;
-      }
-
-      // Generate new logo
-      const generated = await generateAppLogo();
-      if (generated) {
-        setLogoSrc(generated);
-        sessionStorage.setItem('aether_logo', generated);
-      }
-    };
-    
-    fetchLogo();
+    // Always use the static logo file — clear any old cached SVG
+    sessionStorage.removeItem('aether_logo');
+    setLogoSrc('/logo.png');
   }, []);
 
   // User Profile State
