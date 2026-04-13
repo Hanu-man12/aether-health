@@ -130,35 +130,72 @@ const App: React.FC = () => {
   const handleGlobalVoiceInput = async (transcript: string) => {
     if (!transcript) return;
     setIsRoutingVoice(true);
-    setFeedbackMsg(t.voice.processing);
     setBuddyResponse(null);
 
     try {
       const routingResult = await routeVoiceIntent(transcript, userProfile);
-      
+
+      // ── MODULE PAGE: smart routing ──────────────────────────────────────────
+      if (view === 'MODULE' && currentElement) {
+        if (
+          routingResult.action === 'NAVIGATE_ELEMENT' &&
+          routingResult.targetElement &&
+          routingResult.targetElement !== currentElement
+        ) {
+          // Navigate to different module — no popup, direct
+          handleElementSelect(routingResult.targetElement);
+          return;
+        }
+
+        if (routingResult.action === 'NAVIGATE_DASHBOARD') {
+          handleBack();
+          return;
+        }
+
+        // Input intent on FIRE (text module) — replace input + auto analyze
+        if (
+          currentElement === ElementType.FIRE &&
+          (routingResult.action === 'EXPLAIN' || routingResult.targetElement === ElementType.FIRE)
+        ) {
+          setInputText(transcript);
+          // Small delay so state updates before handleAction reads it
+          setTimeout(() => handleAction(transcript), 100);
+          return;
+        }
+
+        // For other module pages with no clear nav intent — do nothing silently
+        return;
+      }
+
+      // ── DASHBOARD / LANDING PAGE: full routing ──────────────────────────────
+      setFeedbackMsg(t.voice.processing);
+
       if (routingResult.action === 'NAVIGATE_DASHBOARD') {
         setFeedbackMsg("Navigating to Dashboard...");
-        setTimeout(() => setFeedbackMsg(null), 3000);
+        setTimeout(() => setFeedbackMsg(null), 2000);
         handleBack();
       } else if (routingResult.action === 'NAVIGATE_ELEMENT' && routingResult.targetElement) {
         setFeedbackMsg(`${t.voice.routed} ${t.elements[routingResult.targetElement].name}`);
-        setTimeout(() => setFeedbackMsg(null), 3000);
+        setTimeout(() => setFeedbackMsg(null), 2000);
         handleElementSelect(routingResult.targetElement);
-        setInputText(transcript);
+        if (routingResult.targetElement === ElementType.FIRE) {
+          setInputText(transcript);
+        }
       } else if (routingResult.action === 'EXPLAIN') {
-         const explanation = await getBuddyResponse(transcript, userProfile);
-         setBuddyResponse(explanation);
-         if (userProfile.voiceResponse && explanation) {
-           playTTS(explanation);
-         }
+        const explanation = await getBuddyResponse(transcript, userProfile);
+        setBuddyResponse(explanation);
+        if (userProfile.voiceResponse && explanation) {
+          playTTS(explanation);
+        }
       } else {
-         setFeedbackMsg("I didn't quite get that command.");
-         setTimeout(() => setFeedbackMsg(null), 2000);
+        setFeedbackMsg("I didn't quite get that.");
+        setTimeout(() => setFeedbackMsg(null), 2000);
       }
 
     } catch (err) {
       console.error(err);
       setFeedbackMsg(t.voice.error);
+      setTimeout(() => setFeedbackMsg(null), 2000);
     } finally {
       setIsRoutingVoice(false);
     }

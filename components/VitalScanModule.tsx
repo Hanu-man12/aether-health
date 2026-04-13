@@ -78,12 +78,10 @@ const VitalScanModule: React.FC<VitalScanModuleProps> = ({
   };
 
   const handleVoiceTranscript = (text: string) => {
-    if (text) {
-      setInput(prev => {
-        const spacer = prev && !prev.endsWith(' ') ? ' ' : '';
-        return prev + spacer + text;
-      });
-    }
+    if (!text) return;
+    // Replace existing input (not append) + auto-trigger analysis
+    setInput(text);
+    setTimeout(() => onAnalyze(text), 100);
   };
 
   const hasResult = !!result?.data;
